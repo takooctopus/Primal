@@ -27,6 +27,12 @@ namespace PrimalEditor.GameProject
         private void OnOpen_Button_click(object sender, RoutedEventArgs e)
         {
             OpenSelectedProject();
+
+            Loaded += (s, e) =>
+            {
+                var item = projectsListBox.ItemContainerGenerator.ContainerFromIndex(projectsListBox.SelectedIndex) as ListBoxItem;
+                item?.Focus();
+            };
         }
 
         private void OnListBoxItem_Mouse_DoubleClick(object sender, MouseButtonEventArgs e)
@@ -42,6 +48,7 @@ namespace PrimalEditor.GameProject
             if (project != null)
             {
                 dialogResult = true;
+                win.DataContext = project;
             }
             win.DialogResult = dialogResult;
             win.Close();

@@ -160,7 +160,7 @@ namespace PrimalEditor.GameProject
                 File.Copy(template.ScreenshotFilePath, Path.GetFullPath(Path.Combine(dirInfo.FullName, "screenshot.png")));
 
                 //var project = new Project(ProjectName, path);
-                //Serializer.ToFile(project, path + $"{ProjectName}" + Project.Extention);
+                //Serializer.ToFile(project, path + $"{ProjectName}" + Project.Extention); b
                 var projectXml = File.ReadAllText(template.ProjectFilePath);
                 projectXml = String.Format(projectXml, ProjectName, ProjectPath);
                 var projectPath = Path.GetFullPath(Path.Combine(path, $"{ProjectName}{Project.Extention}"));
