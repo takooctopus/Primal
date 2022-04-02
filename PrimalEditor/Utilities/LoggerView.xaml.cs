@@ -24,12 +24,12 @@ namespace PrimalEditor.Utilities
         {
             InitializeComponent();
             // TODEL: Test
-            Loaded += (s, e) =>
-            {
-                Logger.Log(MessageType.Info, $"Log Info Test");
-                Logger.Log(MessageType.Warning, $"Log Warning Test");
-                Logger.Log(MessageType.Error, $"Log Error Test");
-            };
+            //Loaded += (s, e) =>
+            //{
+            //    Logger.Log(MessageType.Info, $"Log Info Test");
+            //    Logger.Log(MessageType.Warning, $"Log Warning Test");
+            //    Logger.Log(MessageType.Error, $"Log Error Test");
+            //};
         }
 
         private void OnClear_Button_Click(object sender, RoutedEventArgs e)
