@@ -1,0 +1,27 @@
+#pragma once
+#include "..\Components\ComponentsCommon.h"
+#include "TransformComponent.h"
+
+namespace primal::game_entity {
+
+DEFINE_TYPED_ID(entity_id);
+
+class entity {
+public:
+	constexpr explicit entity(entity_id id) : _id{ id } {}
+	constexpr entity() : _id{ id::invalid_id } {}
+	
+	[[nodiscard]] 
+	constexpr entity_id get_id() const { return _id; }
+	
+	[[nodiscard]] 
+	constexpr bool is_valid() const { return id::is_valid(_id); }
+
+	[[nodiscard]]
+	transform::component transform() const;
+
+private:
+	entity_id _id;
+};
+
+}
