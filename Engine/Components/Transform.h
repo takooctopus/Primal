@@ -15,4 +15,5 @@ struct init_info
 component create_transform(const init_info& info, game_entity::entity entity);
 
 void remove_transform(component c);
+
 }

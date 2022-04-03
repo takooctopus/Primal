@@ -81,6 +81,7 @@
     <Compile Include="Dictionaries\ControlTemplates.xaml.cs">
       <DependentUpon>ControlTemplates.xaml</DependentUpon>
     </Compile>
+    <Compile Include="DllWrappers\EngineAPI.cs" />
     <Compile Include="Editors\WorldEditor\GameEntityView.xaml.cs">
       <DependentUpon>GameEntityView.xaml</DependentUpon>
     </Compile>

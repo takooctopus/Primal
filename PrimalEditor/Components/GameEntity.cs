@@ -1,4 +1,5 @@
-﻿using PrimalEditor.GameProject;
+﻿using PrimalEditor.DllWrappers;
+using PrimalEditor.GameProject;
 using PrimalEditor.Utilities;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,42 @@ namespace PrimalEditor.Components
     [KnownType(typeof(Transform))]
     class GameEntity : ViewModelBase
     {
+        // 这里的EntityId设置是从c++引擎中传回的，对应的是实体在C++引擎创建的实体entity，但是传回的其实只有entity._id，毕竟现在里面只有一个_id属性.
+        private int _entityId = ID.INVALID_ID;
+        public int EntityId { 
+            get => _entityId; 
+            set
+            {
+                if(_entityId != value)
+                {
+                    _entityId = value;
+                    OnPropertyChanged(nameof(EntityId));
+                }
+            } 
+        }
+        private bool _isActive;
+
+        public bool IsActive
+        {
+            get => _isActive;
+            set {
+                if(_isActive != value)
+                {
+                    _isActive = value;
+                    if (_isActive)
+                    {
+                        EntityId = EngineAPI.CreateGameEntity(this);
+                        Debug.Assert(ID.IsValid(_entityId));
+                    }
+                    else
+                    {
+                        EngineAPI.RemoveGameEntity(this);
+                    }
+                    OnPropertyChanged(nameof(IsActive));
+                }                
+            }
+        }
+
         private bool _isEnabled = true;
         [DataMember]
         public bool IsEnabled
@@ -49,6 +86,11 @@ namespace PrimalEditor.Components
         [DataMember(Name = nameof(Components))]
         private readonly ObservableCollection<Component> _components = new ObservableCollection<Component>();
         public ReadOnlyObservableCollection<Component> Components { get; private set; }
+
+        // 获取组件Component接口
+        public Component GetComponent(Type type) => Components.FirstOrDefault(c => c.GetType() == type);
+        // 相当于强制转换类型，将获取的Component进行类型转换
+        public T GetComponent<T>() where T : Component => GetComponent(typeof(T)) as T;
 
         // 同样的， 这两个ICommand只适用于单体的更改，到集合后就不适用了
         //public ICommand RenameCommand { get; private set; }
