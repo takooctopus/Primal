@@ -35,5 +35,25 @@ namespace PrimalEditor.Dictionaries
                 Keyboard.ClearFocus();
             }
         }
+
+        private void OnClose_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var window = ((sender as FrameworkElement).TemplatedParent) as Window;
+            //下面这种写法也是一样的
+            //var window = (Window)((FrameworkElement)sender).TemplatedParent;
+            window.Close();
+        }
+
+        private void OnMaximizeRestore_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var window = ((sender as FrameworkElement).TemplatedParent) as Window;
+            window.WindowState = window.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
+        }
+
+        private void OnMinimize_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var window = ((sender as FrameworkElement).TemplatedParent) as Window;
+            window.WindowState = WindowState.Minimized;
+        }
     }
 }
