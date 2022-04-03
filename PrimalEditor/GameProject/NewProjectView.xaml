@@ -22,7 +22,7 @@
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
                                 <Image Height="25" Width="25" Source="{Binding Icon}" Margin="0,0,5,0"/>
-                                <TextBlock Text="{Binding ProjectType}"></TextBlock>
+                                <TextBlock Text="{Binding ProjectType}" FontSize="18" FontFamily="Bahnschrift condensed" VerticalAlignment="Center"></TextBlock>
                             </StackPanel>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
