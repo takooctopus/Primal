@@ -1,7 +1,8 @@
 ﻿<ResourceDictionary x:Class="PrimalEditor.Dictionaries.ControlTemplates"
                     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:local="clr-namespace:PrimalEditor.Dictionaries">
+                    xmlns:local="clr-namespace:PrimalEditor.Dictionaries"
+                    xmlns:utl ="clr-namespace:PrimalEditor.Utilities.Controls">
     
     <!--设置textblock即我们说的label的样式-->
     <Style TargetType="{x:Type TextBlock}" x:Key="LightTextBlockStyle">
@@ -24,6 +25,13 @@
     <!--设置文本框的输入事件，反正只要按了键盘就触发-->
     <Style TargetType="{x:Type TextBox}" x:Key="{x:Type TextBox}" BasedOn="{StaticResource TextBoxStyle}">
         <EventSetter Event="KeyDown" Handler="OnTextBox_KeyDown"/>
+    </Style>
+    
+    <!--设施带输入的文本框+textBlock控件样式，具体的实现效果应该类似于win中的资源管理器对文件的重命名操作，试想一下我们缓慢双击资源管理器中的文件，会高亮显示出一个文件名的文本框，其中高亮全选了文件名，你可以对这个文件名进行设置，等到按下enter或者escape键进行重置。当然我们这里并不会这样做，毕竟我们只需要按下就行-->
+    <!--基本样式就按照上面定义的TextBoxStyle-->
+    <Style TargetType="{x:Type TextBox}" x:Key="TextBoxStyle_WithRename" BasedOn="{StaticResource TextBoxStyle}">
+        <EventSetter Event="KeyDown" Handler="OnTextBoxRename_KeyDown"/>
+        <EventSetter Event="LostFocus" Handler="OnTextBoxRename_LostFocus"/>
     </Style>
     
     <!--设置Open和Create的按钮样式-->
@@ -459,6 +467,185 @@
                             </DockPanel>
                         </Grid>
                     </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    
+    <!--这个是显示数字的TextBox样式[其是两个组件复合，一个textblock和一个textbox，实现拖拽以改变数值大小，点击以激活文本框赋值，注意，并没有特别指示背景等样式]-->
+    <Style TargetType="{x:Type utl:NumberBox}" x:Key="{x:Type utl:NumberBox}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type utl:NumberBox}">
+                    <Grid>
+                        <TextBlock x:Name="PART_textBlock" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Cursor" Value="SizeWE"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBox x:Name="PART_textBox" BorderThickness="0" Padding="0" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=Explicit}" Foreground="{TemplateBinding Foreground}" Visibility="Collapsed" Style="{StaticResource TextBoxStyle_WithRename}" HorizontalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!--要是文本框变成可见，就把textblock变成不可见-->
+                        <DataTrigger Binding="{Binding Visibility, ElementName=PART_textBox}" Value="Visible">
+                            <Setter Property="Visibility" TargetName="PART_textBlock" Value="Collapsed"/>
+                        </DataTrigger>
+                        <!--对于混合文本值的样式处理，还应该记得吧，在GameEntity的MSEntity那边，混合类型的返回值为null-->
+                        <DataTrigger Binding="{Binding Value, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                            <Setter Property="Background" TargetName="PART_textBlock" Value="{StaticResource Editor.Disabled.FontBrush}"/>
+                            <Setter Property="ToolTip" TargetName="PART_textBlock" Value="混合类型[Mixed Values]"/>
+                            <Setter Property="MinWidth" TargetName="PART_textBlock" Value="20"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--基于NumberBox的标量显示盒，因为NumberBox只是一层基础的功能封装，定义了点击和拖动的特性，继承于NumberBox的ScalarBox在此基础上实现了一些样式的改变，比如鼠标滑动和不可用的事件样式[代码很多和下面VectorBox复用了]-->
+    <Style TargetType="{x:Type utl:ScalarBox}" x:Key="{x:Type utl:ScalarBox}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Foreground" Value="{StaticResource Editor.FontBrush}"/>
+        <Setter Property="Background" Value="{StaticResource Editor.Window.GrayBrush2}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Editor.Window.GrayBrush5}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="ToolTipService.InitialShowDelay" Value="3000"/>
+        <Setter Property="ToolTipService.BetweenShowDelay" Value="1000"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type utl:ScalarBox}">
+                    <Border x:Name="border" SnapsToDevicePixels="True" Margin="0,2,0,3" Background="{TemplateBinding Background}" Padding="5,2" BorderBrush="{TemplateBinding BorderBrush}" CornerRadius="10" BorderThickness="{Binding BorderThickness}">
+                        <Grid x:Name="grid" MinWidth="50">
+                            <TextBlock x:Name="PART_textBlock" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}}" HorizontalAlignment="Center">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Cursor" Value="SizeWE"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBox x:Name="PART_textBox" BorderThickness="0" Padding="0" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, UpdateSourceTrigger=Explicit}" Foreground="{TemplateBinding Foreground}" Visibility="Collapsed" Style="{StaticResource TextBoxStyle_WithRename}" HorizontalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!--要是鼠标划过就将边沿颜色加深-->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource Editor.Window.GrayBrush6}"/>
+                        </Trigger>
+                        <!--要是不可用，就将整个grid[当然grid在border里面透明度改为0.5，默认为1]-->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" TargetName="grid" Value="0.5"/>
+                        </Trigger>
+                        <!--要是文本框变成可见，就把textblock变成不可见-->
+                        <DataTrigger Binding="{Binding Visibility, ElementName=PART_textBox}" Value="Visible">
+                            <Setter Property="Visibility" TargetName="PART_textBlock" Value="Collapsed"/>
+                        </DataTrigger>
+                        <!--对于混合文本值的样式处理，还应该记得吧，在GameEntity的MSEntity那边，混合类型的返回值为null-->
+                        <DataTrigger Binding="{Binding Value, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                            <Setter Property="Background" TargetName="PART_textBlock" Value="{StaticResource Editor.Disabled.FontBrush}"/>
+                            <Setter Property="ToolTip" TargetName="PART_textBlock" Value="混合类型[Mixed Values]"/>
+                            <Setter Property="MinWidth" TargetName="PART_textBlock" Value="20"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+   
+    <!--基于NumberBox的向量显示盒，主要是使用grid中封装几个NumberBox，使用Trigger来限定显示方式，实现组件的捆绑，以实现一组向量的同步绑定-->
+    <Style TargetType="{x:Type utl:VectorBox}" x:Key="{x:Type utl:VectorBox}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Background" Value="{StaticResource Editor.Window.GrayBrush2}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource Editor.Window.GrayBrush5}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type utl:VectorBox}">
+                    <ControlTemplate.Resources>
+                        <Style TargetType="{x:Type utl:NumberBox}" BasedOn="{StaticResource {x:Type utl:NumberBox}}">
+                            <Setter Property="MinWidth" Value="50"/>
+                            <Setter Property="ToolTipService.InitialShowDelay" Value="3000"/>
+                            <Setter Property="ToolTipService.BetweenShowDelay" Value="1000"/>
+                            <Setter Property="Multiplier" Value="{Binding Multiplier , RelativeSource={RelativeSource TemplatedParent}}"/>
+                        </Style>
+                    </ControlTemplate.Resources>
+                    <Border x:Name="border" SnapsToDevicePixels="True" Margin="0,2,0,3" Background="{TemplateBinding Background}" Padding="5,2" BorderBrush="{TemplateBinding BorderBrush}" CornerRadius="10" BorderThickness="{Binding BorderThickness}">
+                        <Grid x:Name="grid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition x:Name="columnDefinition0"/>
+                                <ColumnDefinition x:Name="columnDefinition1"/>
+                                <ColumnDefinition x:Name="columnDefinition2"/>
+                                <ColumnDefinition x:Name="columnDefinition3"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition x:Name="rowDefinition0"/>
+                                <RowDefinition x:Name="rowDefinition1"/>
+                                <RowDefinition x:Name="rowDefinition2"/>
+                                <RowDefinition x:Name="rowDefinition3"/>
+                            </Grid.RowDefinitions>
+                            <utl:NumberBox x:Name="nbX" Foreground="{StaticResource Editor.RedBrush}" Value="{Binding X, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="X value"/>
+                            <utl:NumberBox x:Name="nbY" Foreground="{StaticResource Editor.GreenBrush}" Value="{Binding Y, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Y value"/>
+                            <utl:NumberBox x:Name="nbZ" Foreground="{StaticResource Editor.BlueBrush}" Value="{Binding Z, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Z value"/>
+                            <utl:NumberBox x:Name="nbW" Foreground="{StaticResource Editor.FontBrush}" Value="{Binding W, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="W value" Visibility="Collapsed"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!--纵向排列，分成4排，那么我们列宽度就设置成自动吧，讲道理这个列还是需要一列的-->
+                        <DataTrigger Binding="{Binding Orientation, RelativeSource= {RelativeSource Self}}" Value="Vertical">
+                            <Setter Property="Grid.Row" TargetName="nbX" Value="0"/>
+                            <Setter Property="Grid.Row" TargetName="nbY" Value="1"/>
+                            <Setter Property="Grid.Row" TargetName="nbZ" Value="2"/>
+                            <Setter Property="Grid.Row" TargetName="nbW" Value="3"/>
+                            <!--<Setter Property="Width" TargetName="columnDefinition0" Value="auto"/>-->
+                            <Setter Property="Width" TargetName="columnDefinition1" Value="auto"/>
+                            <Setter Property="Width" TargetName="columnDefinition2" Value="auto"/>
+                            <Setter Property="Width" TargetName="columnDefinition3" Value="auto"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Orientation, RelativeSource= {RelativeSource Self}}" Value="Horizontal">
+                            <Setter Property="Grid.Column" TargetName="nbX" Value="0"/>
+                            <Setter Property="Grid.Column" TargetName="nbY" Value="1"/>
+                            <Setter Property="Grid.Column" TargetName="nbZ" Value="2"/>
+                            <Setter Property="Grid.Column" TargetName="nbW" Value="3"/>
+                            <!--<Setter Property="Height" TargetName="rowDefinition0" Value="auto"/>-->
+                            <Setter Property="Height" TargetName="rowDefinition1" Value="auto"/>
+                            <Setter Property="Height" TargetName="rowDefinition2" Value="auto"/>
+                            <Setter Property="Height" TargetName="rowDefinition3" Value="auto"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding VectorType, RelativeSource= {RelativeSource Self}}" Value="Vector2">
+                            <Setter Property="Width" TargetName="columnDefinition2" Value="auto"/>
+                            <Setter Property="Width" TargetName="columnDefinition3" Value="auto"/>
+                            <Setter Property="Height" TargetName="rowDefinition2" Value="auto"/>
+                            <Setter Property="Height" TargetName="rowDefinition3" Value="auto"/>
+                            <Setter Property="Visibility" TargetName="nbZ" Value="Collapsed"/>
+                            <Setter Property="Visibility" TargetName="nbW" Value="Collapsed"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding VectorType, RelativeSource= {RelativeSource Self}}" Value="Vector3">
+                            <Setter Property="Width" TargetName="columnDefinition3" Value="auto"/>
+                            <Setter Property="Height" TargetName="rowDefinition3" Value="auto"/>
+                            <Setter Property="Visibility" TargetName="nbW" Value="Collapsed"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding VectorType, RelativeSource= {RelativeSource Self}}" Value="Vector4">
+                            <Setter Property="Visibility" TargetName="nbW" Value="Visible"/>
+                        </DataTrigger>
+                        <!--要是鼠标划过就将边沿颜色加深-->
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" TargetName="border" Value="{StaticResource Editor.Window.GrayBrush6}"/>
+                        </Trigger>
+                        <!--要是不可用，就将整个grid[当然grid在border里面透明度改为0.5，默认为1]-->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" TargetName="grid" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

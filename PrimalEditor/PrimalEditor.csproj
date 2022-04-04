@@ -94,6 +94,9 @@
     <Compile Include="GameProject\OpenProject.cs" />
     <Compile Include="GameProject\Project.cs" />
     <Compile Include="GameProject\Scene.cs" />
+    <Compile Include="Utilities\Controls\NumberBox.cs" />
+    <Compile Include="Utilities\Controls\ScalarBox.cs" />
+    <Compile Include="Utilities\Controls\VectorBox.cs" />
     <Compile Include="Utilities\Logger.cs" />
     <Compile Include="Utilities\LoggerView.xaml.cs">
       <DependentUpon>LoggerView.xaml</DependentUpon>
