@@ -32,7 +32,11 @@ namespace PrimalEditor.Editors
         {
             Loaded -= OnWorldEditorViewLoaded;
             Focus();
-            ((INotifyCollectionChanged)Project.UndoRedo.UndoList).CollectionChanged += (s, e) => Focus();
+            
+            // TODO: 修改焦点逻辑,因为下面的修改会导致全局快捷键失效，这个留着以后再弄
+            // TOREMOVE: 修复对MSentityList里面复数选中时的背景失效问题，你看下面这个函数就是当返回null时，会重新焦点主界面，就是这个bug
+            //((INotifyCollectionChanged)Project.UndoRedo.UndoList).CollectionChanged += (s, e) => Focus();
+
         }
     }
 }

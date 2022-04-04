@@ -17,7 +17,9 @@ namespace PrimalEditor.Components
     [KnownType(typeof(Transform))]
     class GameEntity : ViewModelBase
     {
-        // 这里的EntityId设置是从c++引擎中传回的，对应的是实体在C++引擎创建的实体entity，但是传回的其实只有entity._id，毕竟现在里面只有一个_id属性.
+        /// <summary>
+        /// 这里的EntityId设置是从c++引擎中传回的，对应的是实体在C++引擎创建的实体entity，但是传回的其实只有entity._id，毕竟现在里面只有一个_id属性.
+        /// </summary>
         private int _entityId = ID.INVALID_ID;
         public int EntityId { 
             get => _entityId; 
@@ -30,8 +32,12 @@ namespace PrimalEditor.Components
                 }
             } 
         }
-        private bool _isActive;
 
+        /// <summary>
+        /// 游戏实体当前是否处于活动状态
+        /// 特别的，当我们更改IsActive的值时，会在c++引擎中创建或移除对应实体
+        /// </summary>
+        private bool _isActive;
         public bool IsActive
         {
             get => _isActive;
@@ -44,15 +50,19 @@ namespace PrimalEditor.Components
                         EntityId = EngineAPI.CreateGameEntity(this);
                         Debug.Assert(ID.IsValid(_entityId));
                     }
-                    else
+                    else if(ID.IsValid(_entityId))
                     {
                         EngineAPI.RemoveGameEntity(this);
+                        EntityId = ID.INVALID_ID;
                     }
                     OnPropertyChanged(nameof(IsActive));
                 }                
             }
         }
 
+        /// <summary>
+        /// 当前是否可操作
+        /// </summary>
         private bool _isEnabled = true;
         [DataMember]
         public bool IsEnabled
@@ -67,6 +77,10 @@ namespace PrimalEditor.Components
                 }
             }
         }
+        
+        /// <summary>
+        /// 组件名称，一个组件当然得有一个名字
+        /// </summary>
         private string _name;
         [DataMember]
         public string Name
@@ -81,20 +95,38 @@ namespace PrimalEditor.Components
                 }
             }
         }
+
+        /// <summary>
+        /// 组件对应的父场景，同样的是一对多关系
+        /// </summary>
         [DataMember]
         public Scene ParentScene { get; private set; }
+
+        /// <summary>
+        /// 实体对应的所有组件视图集合，这个要放下去序列化的
+        /// </summary>
         [DataMember(Name = nameof(Components))]
         private readonly ObservableCollection<Component> _components = new ObservableCollection<Component>();
         public ReadOnlyObservableCollection<Component> Components { get; private set; }
 
-        // 获取组件Component接口
+        /// <summary>
+        /// 获取组件Component接口，这里只获取了一个
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public Component GetComponent(Type type) => Components.FirstOrDefault(c => c.GetType() == type);
-        // 相当于强制转换类型，将获取的Component进行类型转换
+
+        /// <summary>
+        /// 相当于强制转换类型，将获取的Component进行类型转换
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetComponent<T>() where T : Component => GetComponent(typeof(T)) as T;
 
-        // 同样的， 这两个ICommand只适用于单体的更改，到集合后就不适用了
-        //public ICommand RenameCommand { get; private set; }
-        //public ICommand IsEnableCommand { get; private set; }
+        /// <summary>
+        /// 在反序列化时需要进行的操作，初始化创建游戏实体的组件集合
+        /// </summary>
+        /// <param name="context"></param>
         [OnDeserialized]
         void OnDeserialized(StreamingContext context)
         {
@@ -105,33 +137,8 @@ namespace PrimalEditor.Components
                 OnPropertyChanged(nameof(Components));
             }
 
-            // 同样的， 这两个ICommand只适用于单体的更改，到集合后就不适用了
-            //RenameCommand = new RelayCommand<string>(x =>
-            //{
-            //    var oldName = _name;
-            //    Name = x;
-            //    Project.UndoRedo.Add(new UndoRedoAction(
-            //        nameof(Name),
-            //        this,
-            //        oldName,
-            //        x,
-            //        $"Rename entity '{oldName}' to '{x}'"
-            //        )); 
-            //}, x => x != _name);
-
-            //IsEnableCommand = new RelayCommand<bool>(x =>
-            //{
-            //    var oldValue = _isEnabled;
-            //    IsEnabled = x;
-            //    Project.UndoRedo.Add(new UndoRedoAction(
-            //        nameof(IsEnabled),
-            //        this,
-            //        oldValue,
-            //        x,
-            //        x ? $"Enable {Name}" : $"Disable {Name}"
-            //        ));
-            //});
         }
+
         public GameEntity(Scene scene)
         {
             Debug.Assert(scene != null);
@@ -141,10 +148,20 @@ namespace PrimalEditor.Components
         }
     }
 
+    /// <summary>
+    /// 多选实体类
+    /// </summary>
     abstract class MSEntity : ViewModelBase
     {
+        /// <summary>
+        /// 是否允许更新，用来互斥更新模型数据
+        /// </summary>
         private bool _enableUpdates = true;
-        // 注意这里bool是可以为null的，这里这样选择是因为集合的原因，身为集合很可能下面的gameEntity._isEnable是不统一的，null就表示了这种不统一的特性
+
+        /// <summary>
+        /// 是否可以操作
+        /// 注意这里bool是可以为null的，这里这样选择是因为集合的原因，身为集合很可能下面的gameEntity._isEnable是不统一的，null就表示了这种不统一的特性
+        /// </summary>
         private bool? _isEnabled = true;
         public bool? IsEnabled
         {
@@ -159,6 +176,9 @@ namespace PrimalEditor.Components
             }
         }
 
+        /// <summary>
+        /// 集合中所有游戏实体的共有名称，名称不同则为空
+        /// </summary>
         private string _name;
         public string Name
         {
@@ -172,47 +192,94 @@ namespace PrimalEditor.Components
                 }
             }
         }
+
+        /// <summary>
+        /// 组件集合
+        /// </summary>
         private readonly ObservableCollection<IMSComponent> _components = new ObservableCollection<IMSComponent>();
         public ReadOnlyObservableCollection<IMSComponent> Components { get; }
-        public List<GameEntity> SelectedEntities { get; }
-        public static float? GetMixedValue(List<GameEntity> entities, Func<GameEntity,float> getProperty)
+
+        /// <summary>
+        /// MSEntity类获取Component的函数，注意这个T是继承于IMSComponent的，反正返回特定类型Component 一个
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public T GetMSComponent<T>() where T : IMSComponent
         {
-            var value = getProperty(entities.First());
-            foreach(var entity in entities.Skip(1))
-            {
-                // 这个函数是建立于Utilities.cs->MathUtil类中的
-                if (!value.IsTheSameAs(getProperty(entity)))
-                {
-                    return null;
-                }
-            }
-            return value;
+            return (T)Components.FirstOrDefault(x => x.GetType() == typeof(T));
         }
-        public static bool? GetMixedValue(List<GameEntity> entities, Func<GameEntity, bool> getProperty)
+        
+        /// <summary>
+        /// 已经选择的游戏实体列表
+        /// </summary>
+        public List<GameEntity> SelectedEntities { get; }
+
+        private void MakeComponentList()
         {
-            var value = getProperty(entities.First());
-            foreach (var entity in entities.Skip(1))
+            _components.Clear();
+            var firstEntity = SelectedEntities.FirstOrDefault();
+            if (firstEntity == null) return;
+
+            foreach(var component in firstEntity.Components)
             {
-                if (value != getProperty(entity))
+                var type = component.GetType();
+                // 如果对于集合中， 其中有游戏实体(它根据类型获取的组件为空)，即它不包含此种组件  【使用！表示集合中没有这种不合群的游戏实体】 
+                if (!SelectedEntities.Skip(1).Any(entity => entity.GetComponent(type) == null))
                 {
-                    return null;
+                    // 我们断言(组件集合中找不到这种类型的组件)
+                    Debug.Assert(Components.FirstOrDefault(x => x.GetType() == type) == null);
+                    _components.Add(component.GetMultiSelectionComponent(this));
                 }
             }
-            return value;
         }
 
-        public static string GetMixedValue(List<GameEntity> entities, Func<GameEntity, string> getProperty)
+        /// <summary>
+        /// 获取固定类型集合中的的混合属性 对于可null的float值获取 混合数据为null，否则就是集合单一值
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objects"></param>
+        /// <param name="getProperty"></param>
+        /// <returns></returns>
+        public static float? GetMixedValue<T>(List<T> objects, Func<T,float> getProperty)
         {
-            var value = getProperty(entities.First());
-            foreach (var entity in entities.Skip(1))
-            {
-                if (value != getProperty(entity))
-                {
-                    return null;
-                }
-            }
-            return value;
+            var value = getProperty(objects.First());
+            // List集合中跳过第一个，如果有任何的值不相似于第一个值，返回null， 否则所有值都是一样的，返回集合中的共有属性值
+            return objects.Skip(1).Any(x => !getProperty(x).IsTheSameAs(value)) ? (float?) null : value;
         }
+
+        /// <summary>
+        /// 获取固定类型集合中的的混合属性 对于可null的bool值获取
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objects"></param>
+        /// <param name="getProperty"></param>
+        /// <returns></returns>
+        public static bool? GetMixedValue<T>(List<T> objects, Func<T, bool> getProperty)
+        {
+            var value = getProperty(objects.First());
+            // List集合中跳过第一个，如果有任何的值不等于第一个值，返回null， 否则所有值都是一样的，返回集合中的共有属性值
+            return objects.Skip(1).Any(x => getProperty(x) != value) ? (bool?)null : value;
+        }
+
+        /// <summary>
+        /// 获取固定类型集合中的的混合属性 对于string[因为string本身就是可null的]的获取
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objects"></param>
+        /// <param name="getProperty"></param>
+        /// <returns></returns>
+        public static string GetMixedValue<T>(List<T> objects, Func<T, string> getProperty)
+        {
+            var value = getProperty(objects.First());
+            // List集合中跳过第一个，如果有任何的值不等于第一个值，返回null， 否则所有值都是一样的，返回集合中的共有属性值
+            return objects.Skip(1).Any(x => getProperty(x) != value) ? null : value;
+        }
+
+        /// <summary>
+        /// 更新游戏实体集合属性的方法，将集合中的所有实体的对应属性设置成我们现在选择的值
+        /// </summary>
+        /// <param name="propertyName"></param>
+        /// <returns></returns>
         protected virtual bool UpdateGameEntities(string propertyName)
         {
             // 我们将这个方法设置成虚函数，是因为这个是基类，下面派生的MSGameEntity有自己的属性，每个都不一样，得重写
@@ -223,18 +290,29 @@ namespace PrimalEditor.Components
             }
             return false;
         }
+
+        /// <summary>
+        /// 从集合中获取我们需要的属性值，注意包含不同值时可能返回null
+        /// </summary>
+        /// <returns></returns>
         protected virtual bool UpdateMSGameEntity()
         {  
             IsEnabled = GetMixedValue(SelectedEntities, new Func<GameEntity, bool>(x => x.IsEnabled));
             Name = GetMixedValue(SelectedEntities, new Func<GameEntity, string>(x => x.Name));
             return true;
         }
+
+        /// <summary>
+        /// 互斥从视图中更新数据
+        /// </summary>
         public void Refresh()
         {
             _enableUpdates = false;
             UpdateMSGameEntity();
+            MakeComponentList();
             _enableUpdates = true;
         }
+
         public MSEntity(List<GameEntity> entities)
         {
             Debug.Assert(entities.Any() == true);
@@ -250,6 +328,9 @@ namespace PrimalEditor.Components
         }
     }
 
+    /// <summary>
+    /// 继承于MSEntity的多选游戏实体类
+    /// </summary>
     class MSGameEntity : MSEntity
     {
         public MSGameEntity(List<GameEntity> entities) : base(entities)

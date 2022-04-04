@@ -58,6 +58,8 @@ namespace PrimalEditor.Utilities.Controls
 
             // TODEBUG: 我TM就不明白这个GetPosition为什么返回来的X就是整数间隔的，就离谱。 明明Y那边都是好的，这边X就不是了!!!
             _mouseXStart =  e.GetPosition(this).X;
+
+            Focus();
         }
         private void OnTextBlock_Mouse_LBU(object sender, MouseButtonEventArgs e)
         {

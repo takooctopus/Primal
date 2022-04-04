@@ -593,6 +593,7 @@
                                 <RowDefinition x:Name="rowDefinition2"/>
                                 <RowDefinition x:Name="rowDefinition3"/>
                             </Grid.RowDefinitions>
+                            
                             <utl:NumberBox x:Name="nbX" Foreground="{StaticResource Editor.RedBrush}" Value="{Binding X, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="X value"/>
                             <utl:NumberBox x:Name="nbY" Foreground="{StaticResource Editor.GreenBrush}" Value="{Binding Y, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Y value"/>
                             <utl:NumberBox x:Name="nbZ" Foreground="{StaticResource Editor.BlueBrush}" Value="{Binding Z, RelativeSource={RelativeSource TemplatedParent}}" ToolTip="Z value"/>
