@@ -26,17 +26,17 @@ namespace primal::script {
 		/// </summary>
 		utl::vector<id::id_type>				id_mapping;
 		
-		using script_registery = utl::unordered_map<size_t, detail::script_creator>;
+		using script_registry = utl::unordered_map<size_t, detail::script_creator>;
 
 		/// <summary>
 		/// 注册用户脚本用的函数，用来初始化脚本映射，因为我们知道static变量算是最先初始化的变量，所以我们要确定我们使用其之前已经被初始化
 		/// </summary>
 		/// <returns></returns>
-		script_registery& registery() {
+		script_registry& registery() {
 			/// <summary>
 			/// 用户脚本注册映射unordered_map
 			/// </summary>
-			static script_registery reg;
+			static script_registry reg;
 			return reg;
 		}
 
@@ -64,7 +64,7 @@ namespace primal::script {
 
 		[[nodiscard]]
 		u8 register_script(size_t tag, script_creator func) {
-			bool result{ registery().insert(script_registery::value_type{tag, func}).second };
+			bool result{ registery().insert(script_registry::value_type{tag, func}).second };
 			assert(result);
 			return result;
 		}

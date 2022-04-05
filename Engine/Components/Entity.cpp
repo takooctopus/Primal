@@ -47,6 +47,7 @@ namespace primal::game_entity {
 			id = entity_id{ static_cast<id::id_type>(generations.size()) };
 			generations.push_back(0);
 			transforms.emplace_back();
+			scripts.emplace_back();
 		}
 
 		// 使用对应生成的id进行初始化生成entity
@@ -67,7 +68,6 @@ namespace primal::game_entity {
 				assert(!scripts[index].is_valid()); // 断言这个entity开始没有对应的脚本实例
 				scripts[index] = script::create(*info.script, new_entity);
 				assert(scripts[index].is_valid()); // 断言这个entity开始没有对应的脚本实例
-				// TODO: 这里scripts可能index会超过定义大小，前面应该一并扩大vector大小
 			}
 		}
 
@@ -83,6 +83,12 @@ namespace primal::game_entity {
 		{
 			transform::remove(transforms[index]);
 			transforms[index] = {}; //同样的，扔进去一个默认构造为invalid_id的新component
+		}
+		{
+			if (scripts[index].is_valid()) {
+				script::remove(scripts[index]);
+				scripts[index] = {};
+			}
 		}
 		free_ids.push_back(id);
 	}
