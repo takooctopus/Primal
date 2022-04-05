@@ -4,13 +4,13 @@
 namespace primal::transform {
 	
 namespace {
-	util::vector<math::v3> positions;
-	util::vector<math::v4> rotations;
-	util::vector<math::v3> scales;
+	utl::vector<math::v3> positions;
+	utl::vector<math::v4> rotations;
+	utl::vector<math::v3> scales;
 }//ÄäÃûÃüÃû¿Õ¼ä
 
 [[nodiscard]]
-component create_transform(const init_info& info, game_entity::entity entity)
+component create(init_info info, game_entity::entity entity)
 {
 	assert(entity.is_valid());
 	const id::id_type entity_index{ id::index(entity.get_id()) };
@@ -28,7 +28,7 @@ component create_transform(const init_info& info, game_entity::entity entity)
 	return component(transform_id{ static_cast<id::id_type>(positions.size() - 1) });
 }
 
-void remove_transform(component c)
+void remove(component c)
 {
 	assert(c.is_valid());
 }
