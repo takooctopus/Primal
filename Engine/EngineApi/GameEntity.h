@@ -88,6 +88,17 @@ namespace primal {
 			/// </summary>
 			using script_creator = script_ptr(*)(game_entity::entity entity);
 
+			using string_hash = std::hash<std::string>;
+
+			/// <summary>
+			/// 注册用户脚本函数，扔进unorder_map里面做映射
+			/// </summary>
+			/// <param name=""></param>
+			/// <param name=""></param>
+			/// <returns></returns>
+			[[nodiscard]]
+			u8 register_script(size_t, script_creator);
+
 			/// <summary>
 			/// 
 			/// </summary>
@@ -100,6 +111,25 @@ namespace primal {
 				// 创建一个脚本实例并返回指向此script的指针
 				return std::make_unique<script_class>(entity);
 			}
+			
+			/// <summary>
+			/// 使用宏来进行脚本注册，方便对类的绑定
+			/// </summary>
+			#define REGISTER_SCRIPT(TYPE)										\
+			class TYPE;															\
+			namespace {															\
+				u8 _reg_##TYPE													\
+				{																\
+					primal::script::detail::register_script(					\
+						primal::script::detail::string_hash()(#TYPE),			\
+						&primal::script::detail::create_script<TYPE>			\
+					)															\
+				};																\
+			}
+
+
 		}// namespace detail
+
+
 	}//namespace script 
 }

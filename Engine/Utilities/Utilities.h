@@ -2,6 +2,7 @@
 
 #define USE_STL_VECTOR 1
 #define USE_STL_DEQUE 1
+#define USE_STL_UNORDERED_MAP 1
 
 #if USE_STL_VECTOR
 #include <vector>
@@ -32,6 +33,14 @@ namespace primal::utl {
 namespace primal::utl {
 	template<typename T>
 	using deque = std::deque<T>;
+}
+#endif
+
+#if USE_STL_UNORDERED_MAP
+#include <unordered_map>
+namespace primal::utl {
+	template<typename T1, typename T2>
+	using unordered_map = std::unordered_map<T1, T2>;
 }
 #endif
 

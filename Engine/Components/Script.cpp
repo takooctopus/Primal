@@ -25,6 +25,20 @@ namespace primal::script {
 		/// The identifier mapping [generations 到 entity_scripts 的映射]
 		/// </summary>
 		utl::vector<id::id_type>				id_mapping;
+		
+		using script_registery = utl::unordered_map<size_t, detail::script_creator>;
+
+		/// <summary>
+		/// 注册用户脚本用的函数，用来初始化脚本映射，因为我们知道static变量算是最先初始化的变量，所以我们要确定我们使用其之前已经被初始化
+		/// </summary>
+		/// <returns></returns>
+		script_registery& registery() {
+			/// <summary>
+			/// 用户脚本注册映射unordered_map
+			/// </summary>
+			static script_registery reg;
+			return reg;
+		}
 
 		/// <summary>
 		/// 判断脚本id是否存在，
@@ -45,6 +59,17 @@ namespace primal::script {
 		}
 
 	}//匿名空间
+
+	namespace detail {
+
+		[[nodiscard]]
+		u8 register_script(size_t tag, script_creator func) {
+			bool result{ registery().insert(script_registery::value_type{tag, func}).second };
+			assert(result);
+			return result;
+		}
+
+	}//detail命名空间
 
 	[[nodiscard]]
 	component create(init_info info, game_entity::entity entity) {
