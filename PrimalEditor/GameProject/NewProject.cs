@@ -28,6 +28,7 @@ namespace PrimalEditor.GameProject
         public string IconFilePath { get; set; }
         public string ScreenshotFilePath { get; set; }
         public string ProjectFilePath { get; set; }
+        public string TemplatePath { get; set; }
     }
 
     class NewProject : ViewModelBase
@@ -165,6 +166,9 @@ namespace PrimalEditor.GameProject
                 projectXml = String.Format(projectXml, ProjectName, ProjectPath);
                 var projectPath = Path.GetFullPath(Path.Combine(path, $"{ProjectName}{Project.Extention}"));
                 File.WriteAllText(projectPath, projectXml);
+
+                CreateMSVCSolution(template, path);
+
                 return path;
             }
             catch (Exception ex)
@@ -173,6 +177,36 @@ namespace PrimalEditor.GameProject
                 Logger.Log(MessageType.Error, $"Failed to create project {ProjectName} in {path} using template {template.ProjectType}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// 从模板中的MSVC工程文件模板创建项目工程
+        /// </summary>
+        /// <param name="template">The template.</param>
+        /// <param name="projectPath">The project path.</param>
+        private void CreateMSVCSolution(ProjectTemplate template, string projectPath)
+        {
+            Debug.Assert(File.Exists(Path.Combine(template.TemplatePath, "MSVCSolution")));
+            Debug.Assert(File.Exists(Path.Combine(template.TemplatePath, "MSVCProject")));
+
+            // TODO: 现在暂时使用MainWindow.PrimalPath，以后会改成安装位置
+            var engineAPIPath = Path.Combine(MainWindow.PrimalPath, @"Engine\EngineAPI");
+            Debug.Assert(Directory.Exists(engineAPIPath));
+
+            // MSCVC工程文件的XML模板中的变量位置，反正就是三个，重新format呗
+            var _0 = ProjectName;
+            var _1 = "{" + Guid.NewGuid().ToString().ToUpper() + "}";
+            var solution = File.ReadAllText(Path.Combine(template.TemplatePath, "MSVCSolution"));
+            solution = String.Format(solution, _0, _1, "{" + Guid.NewGuid().ToString().ToUpper() + "}");
+            // 最后写到新建项目的MSVC工程文件里
+            File.WriteAllText(Path.GetFullPath(Path.Combine(projectPath, $"{_0}.sln")), solution);
+
+            var _2 = engineAPIPath;
+            var _3 = MainWindow.PrimalPath;
+            var project = File.ReadAllText(Path.Combine(template.TemplatePath, "MSVCProject"));
+            project = String.Format(project, _0, _1, _2, _3);
+            // 最后写到新建项目的MSVC工程文件里
+            File.WriteAllText(Path.GetFullPath(Path.Combine(projectPath, $@"GameCode\{_0}.vcxproj")), project);
         }
 
         public NewProject()
@@ -190,6 +224,7 @@ namespace PrimalEditor.GameProject
                     template.ScreenshotFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"screenshot.png"));
                     template.Screenshot = File.ReadAllBytes(template.ScreenshotFilePath);
                     template.ProjectFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),template.ProjectFile));
+                    template.TemplatePath = Path.GetDirectoryName(file);
                     _projectTemplates.Add(template);
                 }
                 ValidateProjectPath();
