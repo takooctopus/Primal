@@ -15,14 +15,15 @@ using System.Windows.Media.Imaging;
 namespace PrimalEditor
 {
     /// <summary>
-    /// Interaction logic for EnginePathDialg.xaml
+    /// 引擎路径的对话框
     /// </summary>
-    public partial class EnginePathDialg : Window
+    public partial class EnginePathDialog : Window
     {
         public string PrimalPath { get; private set; }
-        public EnginePathDialg()
+        public EnginePathDialog()
         {
             InitializeComponent();
+            // 要设置对话框的主人，关系到其初始化位置和焦点等
             Owner = Application.Current.MainWindow;
         }
 

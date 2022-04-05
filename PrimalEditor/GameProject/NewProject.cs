@@ -163,7 +163,7 @@ namespace PrimalEditor.GameProject
                 //var project = new Project(ProjectName, path);
                 //Serializer.ToFile(project, path + $"{ProjectName}" + Project.Extention); b
                 var projectXml = File.ReadAllText(template.ProjectFilePath);
-                projectXml = String.Format(projectXml, ProjectName, ProjectPath);
+                projectXml = String.Format(projectXml, ProjectName, path);
                 var projectPath = Path.GetFullPath(Path.Combine(path, $"{ProjectName}{Project.Extention}"));
                 File.WriteAllText(projectPath, projectXml);
 
@@ -223,8 +223,8 @@ namespace PrimalEditor.GameProject
                     template.Icon = File.ReadAllBytes(template.IconFilePath);
                     template.ScreenshotFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"screenshot.png"));
                     template.Screenshot = File.ReadAllBytes(template.ScreenshotFilePath);
-                    template.ProjectFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),template.ProjectFile));
                     template.TemplatePath = Path.GetDirectoryName(file);
+                    template.ProjectFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),template.ProjectFile));
                     _projectTemplates.Add(template);
                 }
                 ValidateProjectPath();

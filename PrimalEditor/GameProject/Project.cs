@@ -1,4 +1,5 @@
-﻿using PrimalEditor.Utilities;
+﻿using PrimalEditor.GameDev;
+using PrimalEditor.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -21,7 +22,11 @@ namespace PrimalEditor.GameProject
         public string Name { get; private set; } = "New Project";
         [DataMember]
         public string Path { get; private set; }
-        public string FullPath => $@"{Path}{Name}\{Name}{Extention}";
+        public string FullPath => $@"{Path}{Name}{Extention}";
+
+        public string Solution => $@"{Path}{Name}.sln";
+
+
         [DataMember(Name = "Scenes")]
         private ObservableCollection<Scene> _scenes = new ObservableCollection<Scene>();
         public ReadOnlyCollection<Scene> Scenes
@@ -30,16 +35,17 @@ namespace PrimalEditor.GameProject
             private set;
         }
         private Scene _activeScene;
-        public Scene ActiveScene {
-            get => _activeScene; 
+        public Scene ActiveScene
+        {
+            get => _activeScene;
             set
             {
-                if(_activeScene != value)
+                if (_activeScene != value)
                 {
                     _activeScene = value;
                     OnPropertyChanged(nameof(ActiveScene));
                 }
-            } 
+            }
         }
         public static Project Current => Application.Current.MainWindow.DataContext as Project;
         public static UndoRedo UndoRedo { get; } = new UndoRedo();
@@ -49,6 +55,7 @@ namespace PrimalEditor.GameProject
         public ICommand AddSceneCommand { get; private set; }
         public ICommand RemoveSceneCommand { get; private set; }
         public ICommand SaveCommand { get; private set; }
+
         private void AddScene(string sceneName)
         {
             Debug.Assert(!string.IsNullOrEmpty(sceneName.Trim()));
@@ -66,6 +73,8 @@ namespace PrimalEditor.GameProject
         }
         public void Unload()
         {
+            // 退出主程序时要关闭VS
+            VisualStudio.CloseVisualStudio();
             UndoRedo.Reset();
         }
 
@@ -77,7 +86,7 @@ namespace PrimalEditor.GameProject
         [OnDeserialized]
         private void OnDeserialized(StreamingContext contex)
         {
-            if(_scenes != null)
+            if (_scenes != null)
             {
                 Scenes = new ReadOnlyObservableCollection<Scene>(_scenes);
                 OnPropertyChanged(nameof(Scenes));
@@ -111,7 +120,7 @@ namespace PrimalEditor.GameProject
             RedoCommand = new RelayCommand<object>(x => UndoRedo.Redo());
             SaveCommand = new RelayCommand<object>(x => Save(this));
         }
-        public Project (string name, string path)
+        public Project(string name, string path)
         {
             Name = name;
             Path = path;

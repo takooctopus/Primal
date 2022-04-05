@@ -43,7 +43,7 @@ namespace PrimalEditor
             var primalPath = Environment.GetEnvironmentVariable("PRIMAL_ENGINE", EnvironmentVariableTarget.User);
             if (primalPath == null || !Directory.Exists(Path.Combine(primalPath, @"Engine\EngineAPI")))
             {
-                var dlg = new EnginePathDialg();
+                var dlg = new EnginePathDialog();
                 if (dlg.ShowDialog() == true)
                 {
                     PrimalPath = dlg.PrimalPath;

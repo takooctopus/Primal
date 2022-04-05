@@ -1,4 +1,5 @@
-﻿using PrimalEditor.GameProject;
+﻿using PrimalEditor.GameDev;
+using PrimalEditor.GameProject;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -37,6 +38,16 @@ namespace PrimalEditor.Editors
             // TOREMOVE: 修复对MSentityList里面复数选中时的背景失效问题，你看下面这个函数就是当返回null时，会重新焦点主界面，就是这个bug
             //((INotifyCollectionChanged)Project.UndoRedo.UndoList).CollectionChanged += (s, e) => Focus();
 
+        }
+        /// <summary>
+        /// 新建脚本按钮点击事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OnNewScript_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new NewScriptDialog();
+            dlg.ShowDialog();
         }
     }
 }
