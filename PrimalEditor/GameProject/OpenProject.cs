@@ -58,6 +58,7 @@ namespace PrimalEditor.GameProject
         }
         private static void WriteProjectData()
         {
+            // TOERROR: 创建项目时这个地方直接卡死了，搞什么啊
             var projects = _projects.OrderBy(x => x.Date).ToList();
             Serializer.ToFile(new ProjectDataList() { Projects = projects}, _projectDataPath);
         }

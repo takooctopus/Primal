@@ -1,4 +1,5 @@
-﻿using PrimalEditor.GameDev;
+﻿using PrimalEditor.DllWrappers;
+using PrimalEditor.GameDev;
 using PrimalEditor.Utilities;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace PrimalEditor.GameProject
     class Project : ViewModelBase
     {
         /// <summary>
-        /// 我们Editor本身工程的主拓展名.primal
+        /// 我们Game本身工程的主拓展名.primal
         /// </summary>
         public static string Extention { get; } = ".primal";
 
@@ -37,7 +38,7 @@ namespace PrimalEditor.GameProject
         public string Name { get; private set; } = "New Project";
 
         /// <summary>
-        /// Editor项目本身工程项目.primal文件所在文件夹的路径
+        /// Game项目本身工程项目.primal文件所在文件夹的路径，你那个游戏项目的主目录，包含项目名称那个
         /// </summary>
         [DataMember]
         public string Path { get; private set; }
@@ -125,6 +126,48 @@ namespace PrimalEditor.GameProject
         public ICommand SaveCommand { get; private set; }
         public ICommand BuildCommand { get; private set; }
 
+        private void SetCommands()
+        {
+            // 添加场景的Command
+            AddSceneCommand = new RelayCommand<object>(x =>
+            {
+                AddScene($"New Scene {_scenes.Count}");
+                var newScene = _scenes.Last();
+                var sceneIndex = _scenes.Count - 1;
+                UndoRedo.Add(new UndoRedoAction(
+                    () => RemoveScene(newScene),
+                    () => _scenes.Insert(sceneIndex, newScene),
+                    $"Add {newScene.Name}"
+                    ));
+            });
+
+            // 移除场景的Command
+            RemoveSceneCommand = new RelayCommand<Scene>(x =>
+            {
+                var sceneIndex = _scenes.IndexOf(x);
+                RemoveScene(x);
+                UndoRedo.Add(new UndoRedoAction(
+                    () => _scenes.Insert(sceneIndex, x),
+                    () => RemoveScene(x),
+                    $"Remove {x.Name}"
+                    ));
+            }, x => !x.IsActive);
+
+            // 第一个参数是要调用的方法， 第二个是推断[推断为假这个button就按不下去]
+            UndoCommand = new RelayCommand<object>(x => UndoRedo.Undo(), x => UndoRedo.UndoList.Any());
+            RedoCommand = new RelayCommand<object>(x => UndoRedo.Redo(), x => UndoRedo.RedoList.Any());
+            SaveCommand = new RelayCommand<object>(x => Save(this));
+            BuildCommand = new RelayCommand<bool>(async x => await BuildGameCodeDll(x), x => !VisualStudio.IsDebugging() && VisualStudio.BuildDone);
+
+
+            OnPropertyChanged(nameof(AddSceneCommand));
+            OnPropertyChanged(nameof(RemoveSceneCommand));
+            OnPropertyChanged(nameof(UndoCommand));
+            OnPropertyChanged(nameof(RedoCommand));
+            OnPropertyChanged(nameof(SaveCommand));
+            OnPropertyChanged(nameof(BuildCommand));
+        }
+
         private static string GetConfigurationName(BuildConfiguration config) => _buildConfigurationNames[(int)config];
 
         private void AddScene(string sceneName)
@@ -158,13 +201,13 @@ namespace PrimalEditor.GameProject
         /// <summary>
         /// 用来形成Icommand的元素的 构建项目函数
         /// </summary>
-        public void BuildGameCodeDll(bool showWindow = true)
+        public async Task BuildGameCodeDll(bool showWindow = true)
         {
             try
             {
                 UnloadGameCodeDll();
                 //构建gameCode
-                VisualStudio.BuildSolution(this, GetConfigurationName(DllBuildConfig), showWindow);
+                await Task.Run(() => VisualStudio.BuildSolution(this, GetConfigurationName(DllBuildConfig), showWindow));
                 if (VisualStudio.BuildSuceeded)
                 {
                     LoadGameCodeDll();
@@ -179,19 +222,40 @@ namespace PrimalEditor.GameProject
 
         }
 
-        public static void UnloadGameCodeDll()
+        /// <summary>
+        /// 加载GameCode的dll文件 
+        /// </summary>
+        private void LoadGameCodeDll()
         {
-
+            // 现在选择的编译配置文件名
+            var configName = GetConfigurationName(DllBuildConfig);
+            var dll = $@"{Path}x64\{configName}\{Name}.dll";
+            if (File.Exists(dll) && EngineAPI.LoadGameCodeDll(dll) != 0)
+            {
+                Logger.Log(MessageType.Info, "Game Code DLL loaded successfully.");
+            }
+            else
+            {
+                Logger.Log(MessageType.Warning, "Failed to load game code dll file, try to build the project first.");
+            }
         }
 
-        public static void LoadGameCodeDll()
+        /// <summary>
+        /// 移除GameCode的dll文件
+        /// </summary>
+        private void UnloadGameCodeDll()
         {
-
+            if (EngineAPI.UnloadGameCodeDll() != 0)
+            {
+                Logger.Log(MessageType.Info, "Game Code DLL unloaded successfully.");
+            }
         }
+
 
         [OnDeserialized]
-        private void OnDeserialized(StreamingContext contex)
+        private async void OnDeserialized(StreamingContext contex)
         {
+            // 初始化场景集合
             if (_scenes != null)
             {
                 Scenes = new ReadOnlyObservableCollection<Scene>(_scenes);
@@ -199,34 +263,12 @@ namespace PrimalEditor.GameProject
             }
             ActiveScene = Scenes.FirstOrDefault(x => x.IsActive);
 
-            AddSceneCommand = new RelayCommand<object>(x =>
+            // [异步] 加载时要导入gamecode生成的dll文件
             {
-                AddScene($"New Scene {_scenes.Count}");
-                var newScene = _scenes.Last();
-                var sceneIndex = _scenes.Count - 1;
-                UndoRedo.Add(new UndoRedoAction(
-                    () => RemoveScene(newScene),
-                    () => _scenes.Insert(sceneIndex, newScene),
-                    $"Add {newScene.Name}"
-                    ));
-            });
+                await BuildGameCodeDll(false);
+            }
 
-            RemoveSceneCommand = new RelayCommand<Scene>(x =>
-            {
-                var sceneIndex = _scenes.IndexOf(x);
-                RemoveScene(x);
-                UndoRedo.Add(new UndoRedoAction(
-                    () => _scenes.Insert(sceneIndex, x),
-                    () => RemoveScene(x),
-                    $"Remove {x.Name}"
-                    ));
-            }, x => !x.IsActive);
-
-            // 第一个参数是要调用的方法， 第二个是推断[推断为假这个button就按不下去]
-            UndoCommand = new RelayCommand<object>(x => UndoRedo.Undo(), x => UndoRedo.UndoList.Any());
-            RedoCommand = new RelayCommand<object>(x => UndoRedo.Redo(), x => UndoRedo.RedoList.Any());
-            SaveCommand = new RelayCommand<object>(x => Save(this));
-            BuildCommand = new RelayCommand<bool>(x => BuildGameCodeDll(x), x => !VisualStudio.IsDebugging() && VisualStudio.BuildDone);
+            SetCommands();
         }
         public Project(string name, string path)
         {

@@ -30,28 +30,57 @@ namespace PrimalEditor.DllWrappers
 {
     static class EngineAPI
     {
-        private const string _dllName = "EngineDLL.dll";
-        [DllImport(_dllName)]
-        private static extern int CreateGameEntity(GameEntityDescriptor desc);
-        public static int CreateGameEntity(GameEntity entity)
+        private const string _engineDll = "EngineDLL.dll";
+
+        [DllImport(_engineDll, CharSet = CharSet.Ansi)]
+        public static extern int LoadGameCodeDll(string dllPath);
+        [DllImport(_engineDll, CharSet = CharSet.Ansi)]
+        public static extern int UnloadGameCodeDll();
+
+
+        internal static class EntityAPI
         {
-            GameEntityDescriptor desc = new GameEntityDescriptor();
-            // 将CS中的GameEntity类数据过滤放入接口API的数据结构中[即GameEntityDescriptor]
-            // transformComponent的数据逻辑
+            /// <summary>
+            /// 从dll中引入的创建游戏实体函数
+            /// </summary>
+            /// <param name="desc"></param>
+            /// <returns></returns>
+            [DllImport(_engineDll)]
+            private static extern int CreateGameEntity(GameEntityDescriptor desc);
+            /// <summary>
+            /// 创建函数实体的C#侧接口函数
+            /// </summary>
+            /// <param name="entity"></param>
+            /// <returns></returns>
+            public static int CreateGameEntity(GameEntity entity)
             {
-                var c = entity.GetComponent<Transform>();
-                desc.Transform.Position = c.Position;
-                desc.Transform.Rotation = c.Rotation;
-                desc.Transform.Scale = c.Scale;
+                GameEntityDescriptor desc = new GameEntityDescriptor();
+                // 将CS中的GameEntity类数据过滤放入接口API的数据结构中[即GameEntityDescriptor]
+                // transformComponent的数据逻辑
+                {
+                    var c = entity.GetComponent<Transform>();
+                    desc.Transform.Position = c.Position;
+                    desc.Transform.Rotation = c.Rotation;
+                    desc.Transform.Scale = c.Scale;
+                }
+
+                return CreateGameEntity(desc);
             }
 
-            return CreateGameEntity(desc);
-        }
-        [DllImport(_dllName)]
-        private static extern void RemoveGameEntity(int id);
-        public static void RemoveGameEntity(GameEntity entity)
-        {
-            RemoveGameEntity(entity.EntityId);
+            /// <summary>
+            /// 从dll引入的移除游戏实体函数
+            /// </summary>
+            /// <param name="id"></param>
+            [DllImport(_engineDll)]
+            private static extern void RemoveGameEntity(int id);
+            /// <summary>
+            /// c#侧移除游戏实体函数接口
+            /// </summary>
+            /// <param name="entity"></param>
+            public static void RemoveGameEntity(GameEntity entity)
+            {
+                RemoveGameEntity(entity.EntityId);
+            }
         }
     }
 }
