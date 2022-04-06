@@ -20,9 +20,16 @@ namespace PrimalEditor.EngineAPIStructs
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    class ScriptComponent
+    {
+        public IntPtr ScriptCreator;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     class GameEntityDescriptor
     {
         public TransformComponent Transform = new TransformComponent();
+        public ScriptComponent Script = new ScriptComponent();
     }
 }
 
@@ -37,6 +44,22 @@ namespace PrimalEditor.DllWrappers
         [DllImport(_engineDll, CharSet = CharSet.Ansi)]
         public static extern int UnloadGameCodeDll();
 
+        /// <summary>
+        /// Gets the script creator.c#接口
+        /// 因为我们实际上并不会用这个，只是将这个传递给engine而已
+        /// </summary>
+        /// <param name="name">The name.</param>
+        /// <returns></returns>
+        [DllImport(_engineDll)]
+        public static extern IntPtr GetScriptCreator(string name);
+
+        /// <summary>
+        /// Gets the script names. C#接口
+        /// </summary>
+        /// <returns></returns>
+        [DllImport(_engineDll)]
+        [return: MarshalAs(UnmanagedType.SafeArray)]
+        public static extern string[] GetScriptNames();
 
         internal static class EntityAPI
         {
@@ -63,6 +86,12 @@ namespace PrimalEditor.DllWrappers
                     desc.Transform.Rotation = c.Rotation;
                     desc.Transform.Scale = c.Scale;
                 }
+
+                // scriptComponent的数据逻辑
+                {
+                    //var c = entity.GetComponent<Script>();
+                }
+
 
                 return CreateGameEntity(desc);
             }

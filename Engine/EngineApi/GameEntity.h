@@ -15,14 +15,14 @@ namespace primal {
 		public:
 			constexpr explicit entity(entity_id id) : _id{ id } {}
 			constexpr entity() : _id{ id::invalid_id } {}
-					
+
 			/// <summary>
 			/// 返回游戏实体的id
 			/// </summary>
 			/// <returns></returns>
 			[[nodiscard]]
 			constexpr entity_id get_id() const { return _id; }
-			
+
 			/// <summary>
 			/// 判断游戏实体是否可用
 			/// </summary>
@@ -88,6 +88,9 @@ namespace primal {
 			/// </summary>
 			using script_creator = script_ptr(*)(game_entity::entity entity);
 
+			/// <summary>
+			/// 从名字生成tag的hash算法
+			/// </summary>
 			using string_hash = std::hash<std::string>;
 
 			/// <summary>
@@ -98,6 +101,12 @@ namespace primal {
 			/// <returns></returns>
 			[[nodiscard]]
 			u8 register_script(size_t, script_creator);
+
+#ifdef USE_WITH_EDITOR
+			extern "C" __declspec(dllexport)
+#endif // USE_WITH_EDITOR
+			[[nodiscard]]
+			script_creator get_script_creator(size_t tag);
 
 			/// <summary>
 			/// 
@@ -111,12 +120,31 @@ namespace primal {
 				// 创建一个脚本实例并返回指向此script的指针
 				return std::make_unique<script_class>(entity);
 			}
-			
+
+#ifdef USE_WITH_EDITOR
+			[[nodiscard]]
+			u8 add_script_name(const char* name);
+
 			/// <summary>
 			/// 使用宏来进行脚本注册，方便对类的绑定
 			/// </summary>
-			#define REGISTER_SCRIPT(TYPE)										\
-			class TYPE;															\
+#define REGISTER_SCRIPT(TYPE)													\
+			namespace {															\
+				u8 _reg_##TYPE													\
+				{																\
+					primal::script::detail::register_script(					\
+						primal::script::detail::string_hash()(#TYPE),			\
+						&primal::script::detail::create_script<TYPE>			\
+					)															\
+				};																\
+			}																	\
+			const u8 _name_##TYPE { primal::script::detail::add_script_name(#TYPE) }
+
+			/// <summary>
+			/// 使用宏来进行脚本注册，方便对类的绑定
+			/// </summary>
+#else
+#define REGISTER_SCRIPT(TYPE)													\
 			namespace {															\
 				u8 _reg_##TYPE													\
 				{																\
@@ -126,6 +154,11 @@ namespace primal {
 					)															\
 				};																\
 			}
+#endif // USE_WITH_EDITOR
+
+
+
+
 
 
 		}// namespace detail

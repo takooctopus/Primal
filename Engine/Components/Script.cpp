@@ -25,7 +25,10 @@ namespace primal::script {
 		/// The identifier mapping [generations 到 entity_scripts 的映射]
 		/// </summary>
 		utl::vector<id::id_type>				id_mapping;
-		
+
+		/// <summary>
+		/// 一个类型，映射，从tag=>script_creator
+		/// </summary>
 		using script_registry = utl::unordered_map<size_t, detail::script_creator>;
 
 		/// <summary>
@@ -39,6 +42,20 @@ namespace primal::script {
 			static script_registry reg;
 			return reg;
 		}
+
+#ifdef USE_WITH_EDITOR
+
+		/// <summary>
+		/// 如果没有，初始化一个static的名字[string]向量，并返回实例
+		/// </summary>
+		/// <returns></returns>
+		[[nodiscard]]
+		utl::vector<std::string>& script_names() {
+			static utl::vector<std::string> names;
+			return names;
+		}
+#endif // USE_WITH_EDITOR
+
 
 		/// <summary>
 		/// 判断脚本id是否存在，
@@ -69,6 +86,34 @@ namespace primal::script {
 			return result;
 		}
 
+
+		/// <summary>
+		/// 根据名称生成的hash找到对应的脚本creator
+		/// </summary>
+		/// <param name="tag">The tag.</param>
+		/// <returns></returns>
+		[[nodiscard]]
+		script_creator get_script_creator(size_t tag) {
+			// 看一看这个static映射umap里面是否包含这个tag
+			auto script = primal::script::registery().find(tag);
+			assert(script != primal::script::registery().end() && script->first == tag);
+			return script->second;
+		}
+
+#ifdef USE_WITH_EDITOR
+
+		/// <summary>
+		/// 向static变量名称数组中添加一个脚本名称
+		/// </summary>
+		/// <param name="name">The name.</param>
+		/// <returns></returns>
+		[[nodiscard]]
+		u8 add_script_name(const char* name) {
+			script_names().emplace_back(name);
+			return true;
+		}
+#endif // USE_WITH_EDITOR
+
 	}//detail命名空间
 
 	[[nodiscard]]
@@ -98,7 +143,7 @@ namespace primal::script {
 		entity_scripts.emplace_back(info.script_creator(entity));
 		assert(entity_scripts.back()->get_id() == entity.get_id());
 		// entity_scripts最后一个元素的位置，将其前面加0拓展到id_type
-		const id::id_type index{ static_cast<id::id_type>(entity_scripts.size()) - 1};
+		const id::id_type index{ static_cast<id::id_type>(entity_scripts.size()) - 1 };
 		// 建立对应映射从 generation[i] => entity_scripts[j]
 		id_mapping[id::index(id)] = index;
 		return component{ id };
@@ -117,6 +162,28 @@ namespace primal::script {
 		id_mapping[id::index(last_id)] = index;
 		// 删除后我们将被删除的script_id对应的指向非法
 		id_mapping[id::index(id)] = id::invalid_id;
-		
+
 	}
+} // namespace primal::script
+
+
+#ifdef USE_WITH_EDITOR
+#include <atlsafe.h>
+
+extern "C" __declspec(dllexport)
+/// <summary>
+/// 获取脚本名称向外暴露的接口，返回值得是一种接口数组得包含<atlsafe.h>
+/// </summary>
+/// <returns></returns>
+[[nodiscard]]
+LPSAFEARRAY get_script_names() {
+	const u32 size{ (u32)primal::script::script_names().size() };
+	if (!size) return nullptr;
+	CComSafeArray<BSTR> names(size);
+	for (u32 i{ 0 }; i < size; ++i) {
+		names.SetAt(i, A2BSTR(primal::script::script_names()[i].c_str()), false);
+	}
+	return names.Detach();
 }
+
+#endif // USE_WITH_EDITOR

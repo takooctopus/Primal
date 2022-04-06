@@ -3,5 +3,5 @@
 #define EDITOR_INTERFACE extern "C" __declspec(dllexport)
 #endif // !EDITOR_INTERFACE
 
-#include "..\Common\CommonHeaders.h"
-#include "..\Common\Id.h"
+#include "..\Engine\Common\CommonHeaders.h"
+#include "..\Engine\Common\Id.h"
