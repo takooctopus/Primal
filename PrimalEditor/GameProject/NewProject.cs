@@ -214,6 +214,7 @@ namespace PrimalEditor.GameProject
             ProjectTemplates = new ReadOnlyObservableCollection<ProjectTemplate>(_projectTemplates);
             try
             {
+                var dicPath = Path.GetFullPath(_templatePath);
                 var templatesFiles = Directory.GetFiles(_templatePath, "template.xml", SearchOption.AllDirectories);
                 Debug.Assert(templatesFiles.Length > 0);
                 foreach(var file in templatesFiles)

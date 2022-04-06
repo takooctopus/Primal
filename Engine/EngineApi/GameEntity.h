@@ -69,7 +69,7 @@ namespace primal {
 		class entity_script : public game_entity::entity {
 		public:
 			virtual ~entity_script() = default;
-			virtual void begin_play() {}
+			virtual void start() {}
 			virtual void update(float) {}
 		protected:
 			constexpr explicit entity_script(game_entity::entity entity) : game_entity::entity(entity.get_id()) {}

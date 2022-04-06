@@ -26,12 +26,12 @@ namespace PrimalEditor.GameDev
         /// <summary>
         /// 要放进项目的.cpp脚本文件模板
         /// </summary>
-        private static readonly string _cppCode =@"
+        private static readonly string _cppCode = @"
 #include ""{0}.h""
 namespace {1}
 {{
     REGISTER_SCRIPT({0});
-    void {0}::begin_play(){{}}
+    void {0}::start(){{}}
     void {0}::update(float dt){{}}
 }} // namespace {1}
 ";
@@ -43,7 +43,7 @@ namespace {1}
 	public:
 		constexpr explicit {0}(primal::game_entity::entity entity)
 		: primal::script::entity_script{{entity}} {{}}
-        void begin_play( ) override;
+        void start( ) override;
         void update(float dt) override;
     private:
 	}};

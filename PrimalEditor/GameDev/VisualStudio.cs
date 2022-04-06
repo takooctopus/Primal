@@ -1,4 +1,5 @@
-﻿using PrimalEditor.Utilities;
+﻿using PrimalEditor.GameProject;
+using PrimalEditor.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,6 +25,16 @@ namespace PrimalEditor.GameDev
         /// VS我们要的版本，这个就是VS2022，要是2019就是16.0，不考虑版本就删掉版本就是了
         /// </summary>
         private static readonly string _progID = "VisualStudio.DTE.17.0";
+
+        /// <summary>
+        /// 用来判断构建GameCode成功与否的标志量
+        /// </summary>
+        public static bool BuildSuceeded { get; private set; } = true;
+
+        /// <summary>
+        /// 用来判断构建GameCode与否结束的标志量
+        /// </summary>
+        public static bool BuildDone { get; private set; } = true;
 
         /// <summary>
         /// 从ole32.dll导入的方法：返回运行实例表
@@ -150,8 +161,8 @@ namespace PrimalEditor.GameDev
                     // 对_vsInstance解决方案的所有项目进行遍历
                     foreach (EnvDTE.Project project in _vsInstance.Solution.Projects)
                     {
-                        // 找到对应的项目
-                        if(project.UniqueName == projectName)
+                        // 找到对应的项目文件名xxx.vcxproj，要是包含我们要的的项目名，就直接添加进project里
+                        if(project.UniqueName.Contains(projectName))
                         {
                             foreach(var file in files)
                             {
@@ -180,5 +191,105 @@ namespace PrimalEditor.GameDev
             }
             return true;
         }
+
+        /// <summary>
+        /// 在VS构建Solution开始时的触发事件函数
+        /// </summary>
+        /// <param name="project"></param>
+        /// <param name="projectConfig"></param>
+        /// <param name="platform"></param>
+        /// <param name="solutionConfig"></param>
+        private static void OnBuildSolutionBegin(string project, string projectConfig, string platform, string solutionConfig)
+        {
+            Logger.Log(MessageType.Info, $"Building {project}, {projectConfig}, {platform}, {solutionConfig}.");
+        }
+
+        /// <summary>
+        /// 在VS构建Solution结束时的触发事件函数
+        /// </summary>
+        /// <param name="project"></param>
+        /// <param name="projectConfig"></param>
+        /// <param name="platform"></param>
+        /// <param name="solutionConfig"></param>
+        /// <param name="Success"></param>
+        private static void OnBuildSolutionDone(string project, string projectConfig, string platform, string solutionConfig, bool Success)
+        {
+            if (BuildDone) return;
+            if (Success) Logger.Log(MessageType.Info, $"Building {projectConfig} configuration succeeded.");
+            else Logger.Log(MessageType.Error, $"Building {projectConfig} configuration failed.");
+
+            BuildDone = true;
+            BuildSuceeded = Success;
+        }
+
+
+        /// <summary>
+        /// 判断现在VS是否正在Debug运行实例
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsDebugging()
+        {
+            bool result = false;
+            for(int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    result = _vsInstance != null
+                        && (_vsInstance.Debugger.CurrentProgram != null || _vsInstance.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgRunMode);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    if (!result) System.Threading.Thread.Sleep(1000);
+                }
+                if (result) break;
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// 构建GameCode函数
+        /// </summary>
+        /// <param name="project"></param>
+        /// <param name="configName"></param>
+        /// <param name="showWindow">[可选]是否结束后显示窗口</param>
+        /// <exception cref="NotImplementedException"></exception>
+        public static void BuildSolution(Project project, string configName, bool showWindow = true)
+        {
+            // 先判断VS现在是否在DEBUG模式
+            if (IsDebugging())
+            {
+                Logger.Log(MessageType.Error, "Visual Studio is currently running a process.");
+                return;
+            }
+            OpenVisualStudio(project.Solution);
+            BuildDone = BuildSuceeded = false;
+
+            // TODO: 现在这个只是简易实现，最好还是用信息过滤器来实现忙碌信息
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    if (BuildSuceeded) break;
+                    if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(project.Solution);
+                    _vsInstance.MainWindow.Visible = showWindow;
+
+                    _vsInstance.Events.BuildEvents.OnBuildProjConfigBegin += OnBuildSolutionBegin;
+                    _vsInstance.Events.BuildEvents.OnBuildProjConfigDone += OnBuildSolutionDone;
+
+
+                    _vsInstance.Solution.SolutionBuild.SolutionConfigurations.Item(configName).Activate();
+                    _vsInstance.ExecuteCommand("Build.BuildSolution");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.Message);
+                    Debug.WriteLine($"Attempt {i}: failed to build {project.Name} game code in VS");
+                    Logger.Log(MessageType.Error, "Building game code in Vs failed");
+                    System.Threading.Thread.Sleep(1000);
+                }
+            }
+        }
+
     }
 }
