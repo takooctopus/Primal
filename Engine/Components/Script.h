@@ -31,4 +31,10 @@ namespace primal::script {
 	/// <param name="c"></param>
 	void remove(component c);
 
+	/// <summary>
+	/// DEV ONLY:
+	/// 暂时性的更新函数，里面暂时是遍历所有的entity_scripts，全部执行一遍里面的更新函数
+	/// </summary>
+	/// <param name="dt"></param>
+	void update(float dt);
 }

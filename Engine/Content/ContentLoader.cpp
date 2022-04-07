@@ -1,10 +1,13 @@
 #include "ContentLoader.h"
-#include <fstream>
 #include "..\Components\Entity.h"
 #include "..\Components\Transform.h"
 #include "..\Components\Script.h"
 
 #if !defined(SHIPPING)
+
+#include <fstream>
+#include <filesystem>
+#include <Windows.h>
 
 namespace primal::content {
 
@@ -28,7 +31,7 @@ namespace primal::content {
 		/// <param name="data">The data.</param>
 		/// <param name="info">The information.</param>
 		/// <returns></returns>
-		[[nodiscrad]]
+		[[nodiscard]]
 		bool read_transform(const u8*& data, game_entity::entity_info& info) {
 			using namespace DirectX;
 			// 要注意在引擎中rotation是vector[4]，外部是[vector3]所以要中转一下
@@ -93,6 +96,19 @@ namespace primal::content {
 	[[nodiscard]]
 	bool load_game()
 	{
+		//设定我们的工作目录到当前程序执行位置
+		{
+			wchar_t path[MAX_PATH];
+			// 获取exe现在的执行目录[${ProjectDir}\${projectName}\x64\Debug\${projectName.exe}]
+			const u32 length{ GetModuleFileName(0, &path[0], MAX_PATH) };
+			// 要是长度超了，毁灭吧
+			if (!length || GetLastError() == ERROR_INSUFFICIENT_BUFFER) return false;
+			std::filesystem::path p{ path };
+			// 将工作目录设置到Debug[或者Release]那一层
+			SetCurrentDirectory(p.parent_path().wstring().c_str());
+		}
+
+		//注意我们的工作目录
 		std::ifstream game{ "game.bin", std::ios::in | std::ios::binary };
 		utl::vector<u8> buffer{ std::istreambuf_iterator<char>(game),{} };
 		assert(buffer.size());

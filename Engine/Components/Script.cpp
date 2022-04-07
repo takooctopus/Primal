@@ -163,8 +163,15 @@ namespace primal::script {
 		id_mapping[id::index(last_id)] = index;
 		// 删除后我们将被删除的script_id对应的指向非法
 		id_mapping[id::index(id)] = id::invalid_id;
-
 	}
+
+	//
+	void update(float dt) {
+		for (auto& ptr : entity_scripts) {
+			ptr->update(dt);
+		}
+	}
+
 } // namespace primal::script
 
 
