@@ -106,7 +106,6 @@ namespace primal::game_entity {
 		const id::id_type index{ id::index(id) };
 		// 保证index在数组中，没有出现溢出到数组外面的情况
 		assert(index < generations.size());
-		assert(generations[index] == id::generation(id));
 		return (generations[index] == id::generation(id) && transforms[index].is_valid());
 	}
 
