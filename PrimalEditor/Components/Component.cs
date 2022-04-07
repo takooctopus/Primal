@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -11,10 +12,8 @@ namespace PrimalEditor.Components
     /// <summary>
     /// 多选组件抽象接口，后面的多选组件类应该继承此类
     /// </summary>
-    interface IMSComponent
-    {
+    interface IMSComponent {}
 
-    }
     [DataContract]
     abstract class Component : ViewModelBase
     {
@@ -30,6 +29,8 @@ namespace PrimalEditor.Components
         /// <param name="msEntity"></param>
         /// <returns></returns>
         public abstract IMSComponent GetMultiSelectionComponent(MSEntity msEntity);
+
+        public abstract void WriteToBinary(BinaryWriter bw);
 
         public Component(GameEntity owner)
         {

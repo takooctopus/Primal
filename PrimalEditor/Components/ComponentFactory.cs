@@ -37,5 +37,20 @@ namespace PrimalEditor.Components
             Debug.Assert((int)componentType < _function.Length);
             return _function[(int)componentType];
         }
+
+        /// <summary>
+        /// 根据组件类来返回其在枚举类中对应的index
+        /// </summary>
+        /// <param name="component">The component.</param>
+        /// <returns></returns>
+        public static ComponentType toEnumType(this Component component)
+        {
+            return component switch
+            {
+                Transform => ComponentType.Transform,
+                Script => ComponentType.Script,
+                _ => throw new ArgumentException("Unknown component type.")
+            };
+        }
     }
 }

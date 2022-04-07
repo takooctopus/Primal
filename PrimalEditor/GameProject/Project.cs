@@ -293,16 +293,47 @@ namespace PrimalEditor.GameProject
             Logger.Log(MessageType.Info, $"Project saved to {project.FullPath}");
         }
 
+        /// <summary>
+        /// 将游戏实体存放成二进制
+        /// </summary>
+        private void SaveToBinary()
+        {
+            var configName = GetConfigurationName(standAloneBuildConfig);
+            var bin = $@"{Path}x64\{configName}\game.bin";
+            using (var bw = new BinaryWriter(File.Open(bin, FileMode.Create, FileAccess.Write)))
+            {
+                bw.Write(ActiveScene.GameEntities.Count);
+                foreach(var entity in ActiveScene.GameEntities)
+                {
+                    bw.Write(0); //实体类别 entity type TODO:
+                    bw.Write(entity.Components.Count);
+                    foreach(var component in entity.Components)
+                    {
+                        bw.Write((int)component.toEnumType());
+                        component.WriteToBinary(bw);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 异步task：开始debug或者非debug运行
+        /// </summary>
+        /// <param name="debug">if set to <c>true</c> [debug].</param>
         private async Task RunGame(bool debug)
         {
             var configName = GetConfigurationName(standAloneBuildConfig);
             await Task.Run(() => VisualStudio.BuildSolution(this, configName, debug));
             if (VisualStudio.BuildSuceeded)
             {
+                SaveToBinary();
                 await Task.Run(() => VisualStudio.Run(this, configName, debug));
             }
         }
 
+        /// <summary>
+        /// 异步task，停止game的运行
+        /// </summary>
         private async Task StopGame() => await Task.Run(() => VisualStudio.Stop());
 
         /// <summary>
