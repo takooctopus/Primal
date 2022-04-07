@@ -1,5 +1,7 @@
 ﻿using PrimalEditor.Components;
 using PrimalEditor.EngineAPIStructs;
+using PrimalEditor.GameProject;
+using PrimalEditor.Utilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,6 +27,10 @@ namespace PrimalEditor.EngineAPIStructs
         public IntPtr ScriptCreator;
     }
 
+    /// <summary>
+    /// 游戏实体描述信息的结构体
+    /// 用于的描述我们获得数据的格式化结构体类
+    /// </summary>
     [StructLayout(LayoutKind.Sequential)]
     class GameEntityDescriptor
     {
@@ -46,6 +52,7 @@ namespace PrimalEditor.DllWrappers
 
         /// <summary>
         /// Gets the script creator.c#接口
+        /// 传一个string【脚本名称】进去，返回这个脚本生成的函数对应的地址Intptr
         /// 因为我们实际上并不会用这个，只是将这个传递给engine而已
         /// </summary>
         /// <param name="name">The name.</param>
@@ -89,7 +96,21 @@ namespace PrimalEditor.DllWrappers
 
                 // scriptComponent的数据逻辑
                 {
-                    //var c = entity.GetComponent<Script>();
+                    // 获取游戏实体对象拥有的脚本对象，我们其实只需要传入对象的名称就好
+                    var c = entity.GetComponent<Script>();
+                    // 这里我们要判断当前项目是否为null， 如果为null则 GameCode DLL还未被载入，这个时候脚本组件的创建将会被推迟【但我们仍旧可以建立一个游戏实体(没有脚本属性)】
+                    if( c != null && Project.Current != null)
+                    {
+                        if (Project.Current.AvailableScripts.Contains(c.Name))
+                        {
+                            // 把api从tag中返回的函数地址放到我们的脚本类结构体中
+                            desc.Script.ScriptCreator = GetScriptCreator(c.Name);
+                        }
+                        else
+                        {
+                            Logger.Log(MessageType.Error, $"Unable to find script with name {c.Name}, game entity will be created without script component! ");
+                        }
+                    }
                 }
 
 

@@ -40,6 +40,9 @@ namespace PrimalEditor.GameProject
             OpenSelectedProject();
         }
 
+        /// <summary>
+        /// 打开选中的项目函数
+        /// </summary>
         private void OpenSelectedProject()
         {
             var project = OpenProject.Open(projectsListBox.SelectedItem as ProjectData);

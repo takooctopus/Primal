@@ -15,22 +15,24 @@ namespace PrimalEditor.Components
 {
     [DataContract]
     [KnownType(typeof(Transform))]
+    [KnownType(typeof(Script))]
     class GameEntity : ViewModelBase
     {
         /// <summary>
         /// 这里的EntityId设置是从c++引擎中传回的，对应的是实体在C++引擎创建的实体entity，但是传回的其实只有entity._id，毕竟现在里面只有一个_id属性.
         /// </summary>
         private int _entityId = ID.INVALID_ID;
-        public int EntityId { 
-            get => _entityId; 
+        public int EntityId
+        {
+            get => _entityId;
             set
             {
-                if(_entityId != value)
+                if (_entityId != value)
                 {
                     _entityId = value;
                     OnPropertyChanged(nameof(EntityId));
                 }
-            } 
+            }
         }
 
         /// <summary>
@@ -38,25 +40,37 @@ namespace PrimalEditor.Components
         /// 特别的，当我们更改IsActive的值时，会在c++引擎中创建或移除对应实体
         /// </summary>
         private bool _isActive;
+        /// <summary>
+        /// setter在设置_isActive值时，只有值改变才进行操作
+        /// 激活状态F=>T时，在游戏引擎中创建这个实体
+        /// 激活状态T=>F时，判断这个id是不是非法的，是非法的就移除
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is active; otherwise, <c>false</c>.
+        /// </value>
         public bool IsActive
         {
             get => _isActive;
-            set {
-                if(_isActive != value)
+            set
+            {
+                // 只有值改变时才进行操作
+                if (_isActive != value)
                 {
                     _isActive = value;
                     if (_isActive)
                     {
+                        // 如果激活状态为F=>T，就添加这个实体
                         EntityId = EngineAPI.EntityAPI.CreateGameEntity(this);
                         Debug.Assert(ID.IsValid(_entityId));
                     }
-                    else if(ID.IsValid(_entityId))
+                    else if (ID.IsValid(_entityId))
                     {
+                        // 激活状态T=>F且当前实体id非法，从引擎中移除这个实体，并将当前的C#中的实体对象所属EntityId设置成非法
                         EngineAPI.EntityAPI.RemoveGameEntity(this);
                         EntityId = ID.INVALID_ID;
                     }
                     OnPropertyChanged(nameof(IsActive));
-                }                
+                }
             }
         }
 
@@ -70,14 +84,14 @@ namespace PrimalEditor.Components
             get => _isEnabled;
             set
             {
-                if(_isEnabled != value)
+                if (_isEnabled != value)
                 {
                     _isEnabled = value;
                     OnPropertyChanged(nameof(IsEnabled));
                 }
             }
         }
-        
+
         /// <summary>
         /// 组件名称，一个组件当然得有一个名字
         /// </summary>
@@ -88,7 +102,7 @@ namespace PrimalEditor.Components
             get => _name;
             set
             {
-                if(_name != value)
+                if (_name != value)
                 {
                     _name = value;
                     OnPropertyChanged(nameof(Name));
@@ -124,6 +138,41 @@ namespace PrimalEditor.Components
         public T GetComponent<T>() where T : Component => GetComponent(typeof(T)) as T;
 
         /// <summary>
+        /// 实体中添加组件函数[注意在我们的模型中 一个游戏实体每种类型的组件component最多只有一个，如果出现了重复的，会跳过]
+        /// </summary>
+        /// <param name="component">The component.</param>
+        /// <returns></returns>
+        public bool AddComponent(Component component)
+        {
+            Debug.Assert(component != null);
+            if (!Components.Any(x => x.GetType() == component.GetType()))
+            {
+                IsActive = false;
+                _components.Add(component);
+                IsActive = true;
+                return true;
+            }
+            Logger.Log(MessageType.Warning, $"Entity {Name} already has a {component.GetType().Name} component.");
+            return false;
+        }
+
+        /// <summary>
+        /// 游戏实体中移除组件
+        /// </summary>
+        /// <param name="component">The component.</param>
+        public void RemoveComponent(Component component)
+        {
+            Debug.Assert(component != null);
+            if (component is Transform) return; //坐标变换类是每个都有的，不能删除
+            if (_components.Contains(component))
+            {
+                IsActive = false;
+                _components.Remove(component);
+                IsActive = true;
+            }
+        }
+
+        /// <summary>
         /// 在反序列化时需要进行的操作，初始化创建游戏实体的组件集合
         /// </summary>
         /// <param name="context"></param>
@@ -131,7 +180,7 @@ namespace PrimalEditor.Components
         void OnDeserialized(StreamingContext context)
         {
             Debug.Assert(_components != null);
-            if(_components != null)
+            if (_components != null)
             {
                 Components = new ReadOnlyObservableCollection<Component>(_components);
                 OnPropertyChanged(nameof(Components));
@@ -146,6 +195,7 @@ namespace PrimalEditor.Components
             _components.Add(new Transform(this));
             OnDeserialized(new StreamingContext());
         }
+
     }
 
     /// <summary>
@@ -168,7 +218,7 @@ namespace PrimalEditor.Components
             get => _isEnabled;
             set
             {
-                if(_isEnabled != value)
+                if (_isEnabled != value)
                 {
                     _isEnabled = value;
                     OnPropertyChanged(nameof(IsEnabled));
@@ -185,7 +235,7 @@ namespace PrimalEditor.Components
             get => _name;
             set
             {
-                if(_name != value)
+                if (_name != value)
                 {
                     _name = value;
                     OnPropertyChanged(nameof(Name));
@@ -197,6 +247,12 @@ namespace PrimalEditor.Components
         /// 组件集合
         /// </summary>
         private readonly ObservableCollection<IMSComponent> _components = new ObservableCollection<IMSComponent>();
+        /// <summary>
+        /// 这个是和_components属性绑定的，相比于前者，Components可以在.xaml文件中使用，但前提是你得指明DataContext
+        /// </summary>
+        /// <value>
+        /// The components.
+        /// </value>
         public ReadOnlyObservableCollection<IMSComponent> Components { get; }
 
         /// <summary>
@@ -208,7 +264,7 @@ namespace PrimalEditor.Components
         {
             return (T)Components.FirstOrDefault(x => x.GetType() == typeof(T));
         }
-        
+
         /// <summary>
         /// 已经选择的游戏实体列表
         /// </summary>
@@ -220,7 +276,7 @@ namespace PrimalEditor.Components
             var firstEntity = SelectedEntities.FirstOrDefault();
             if (firstEntity == null) return;
 
-            foreach(var component in firstEntity.Components)
+            foreach (var component in firstEntity.Components)
             {
                 var type = component.GetType();
                 // 如果对于集合中， 其中有游戏实体(它根据类型获取的组件为空)，即它不包含此种组件  【使用！表示集合中没有这种不合群的游戏实体】 
@@ -240,11 +296,11 @@ namespace PrimalEditor.Components
         /// <param name="objects"></param>
         /// <param name="getProperty"></param>
         /// <returns></returns>
-        public static float? GetMixedValue<T>(List<T> objects, Func<T,float> getProperty)
+        public static float? GetMixedValue<T>(List<T> objects, Func<T, float> getProperty)
         {
             var value = getProperty(objects.First());
             // List集合中跳过第一个，如果有任何的值不相似于第一个值，返回null， 否则所有值都是一样的，返回集合中的共有属性值
-            return objects.Skip(1).Any(x => !getProperty(x).IsTheSameAs(value)) ? (float?) null : value;
+            return objects.Skip(1).Any(x => !getProperty(x).IsTheSameAs(value)) ? (float?)null : value;
         }
 
         /// <summary>
@@ -296,7 +352,7 @@ namespace PrimalEditor.Components
         /// </summary>
         /// <returns></returns>
         protected virtual bool UpdateMSGameEntity()
-        {  
+        {
             IsEnabled = GetMixedValue(SelectedEntities, new Func<GameEntity, bool>(x => x.IsEnabled));
             Name = GetMixedValue(SelectedEntities, new Func<GameEntity, string>(x => x.Name));
             return true;
@@ -326,6 +382,11 @@ namespace PrimalEditor.Components
                 }
             };
         }
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MSEntity"/> class.
+        /// MSEntity 无参构造函数，为了暂时解决注入时预览问题
+        /// </summary>
+        public MSEntity() {}
     }
 
     /// <summary>
@@ -333,6 +394,12 @@ namespace PrimalEditor.Components
     /// </summary>
     class MSGameEntity : MSEntity
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MSEntity"/> class.
+        /// MSGameEntity 无参构造函数，为了暂时解决注入时预览问题
+        /// </summary>
+        public MSGameEntity() : base() { }
+
         public MSGameEntity(List<GameEntity> entities) : base(entities)
         {
             Refresh();

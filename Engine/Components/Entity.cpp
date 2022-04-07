@@ -73,22 +73,26 @@ namespace primal::game_entity {
 
 		return new_entity;
 	}
+	
 
 	void remove(entity_id id)
 	{
 		const id::id_type index{ id::index(id) };
 		// 要移除的话，得保证移除的游戏实体是活动的
 		assert(is_alive(id));
+
+		// 移除绑定于gameentity上的script脚本
+		{
+			if (scripts[index].is_valid()) {
+				script::remove(scripts[index]);
+				scripts[index] = {}; //删除时在对应的数组里面生成一个id为非法的默认component
+			}
+		}
+
 		// 移除transform
 		{
 			transform::remove(transforms[index]);
 			transforms[index] = {}; //同样的，扔进去一个默认构造为invalid_id的新component
-		}
-		{
-			if (scripts[index].is_valid()) {
-				script::remove(scripts[index]);
-				scripts[index] = {};
-			}
 		}
 		free_ids.push_back(id);
 	}

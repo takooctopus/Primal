@@ -148,13 +148,14 @@ namespace primal::script {
 		id_mapping[id::index(id)] = index;
 		return component{ id };
 	}
+	
 
 	void remove(component c) {
 		// 断言脚本实例存在且可用
 		assert(c.is_valid() && exist(c.get_id()));
 		const script_id id{ c.get_id() };
 		// 获取entity_scripts最后一个元素实例的script_id
-		const script_id last_id{ entity_scripts.back()->script().get_id() };
+		const script_id last_id{ entity_scripts.back()->script().get_id()};
 		// 获取script_id指向在entity_scripts中对应的index
 		const id::id_type index{ id_mapping[id::index(id)] };
 		utl::erase_unordered(entity_scripts, index);

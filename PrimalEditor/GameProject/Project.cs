@@ -1,4 +1,5 @@
-﻿using PrimalEditor.DllWrappers;
+﻿using PrimalEditor.Components;
+using PrimalEditor.DllWrappers;
 using PrimalEditor.GameDev;
 using PrimalEditor.Utilities;
 using System;
@@ -95,7 +96,33 @@ namespace PrimalEditor.GameProject
         /// </summary>
         public BuildConfiguration DllBuildConfig => BuildConfig == 0 ? BuildConfiguration.DebugEditor : BuildConfiguration.ReleaseEditor;
 
+        /// <summary>
+        /// 可用脚本名称数组
+        /// </summary>
+        private string[] _availableScriptes;
+        /// <summary>
+        /// Gets or sets 可用的脚本名称数组
+        /// </summary>
+        /// <value>
+        /// The available scripts.
+        /// </value>
+        public string[] AvailableScripts
+        {
+            get => _availableScriptes;
+            set
+            {
+                if(_availableScriptes != value)
+                {
+                    _availableScriptes = value;
+                    OnPropertyChanged(nameof(AvailableScripts));
+                }
+            }
+        }
 
+
+        /// <summary>
+        /// 所有的场景实例列表，这个我们要序列化的
+        /// </summary>
         [DataMember(Name = "Scenes")]
         private ObservableCollection<Scene> _scenes = new ObservableCollection<Scene>();
         public ReadOnlyCollection<Scene> Scenes
@@ -103,7 +130,18 @@ namespace PrimalEditor.GameProject
             get;
             private set;
         }
+
+        /// <summary>
+        /// The active scene 当前激活的场景实例
+        /// </summary>
         private Scene _activeScene;
+        /// <summary>
+        /// Gets or sets the active scene.
+        /// 当前激活的场景实例
+        /// </summary>
+        /// <value>
+        /// The active scene.
+        /// </value>
         public Scene ActiveScene
         {
             get => _activeScene;
@@ -116,7 +154,21 @@ namespace PrimalEditor.GameProject
                 }
             }
         }
+
+        /// <summary>
+        /// 当前项目Project，全局唯一实例
+        /// </summary>
+        /// <value>
+        /// The current.
+        /// </value>
         public static Project Current => Application.Current.MainWindow.DataContext as Project;
+
+        /// <summary>
+        /// 撤销重做实例UndoRedo，里面有俩列表放着撤销和重做的命令
+        /// </summary>
+        /// <value>
+        /// The undo redo.
+        /// </value>
         public static UndoRedo UndoRedo { get; } = new UndoRedo();
 
         public ICommand UndoCommand { get; private set; }
@@ -126,6 +178,10 @@ namespace PrimalEditor.GameProject
         public ICommand SaveCommand { get; private set; }
         public ICommand BuildCommand { get; private set; }
 
+        /// <summary>
+        /// 对于Command的设定函数
+        /// 特别的buildCommand是异步的
+        /// </summary>
         private void SetCommands()
         {
             // 添加场景的Command
@@ -168,30 +224,58 @@ namespace PrimalEditor.GameProject
             OnPropertyChanged(nameof(BuildCommand));
         }
 
+        /// <summary>
+        /// 类函数用来获取编译配置
+        /// </summary>
+        /// <param name="config">The configuration.[enum]</param>
+        /// <returns></returns>
         private static string GetConfigurationName(BuildConfiguration config) => _buildConfigurationNames[(int)config];
 
+        /// <summary>
+        /// 根据场景名称添加场景
+        /// </summary>
+        /// <param name="sceneName">Name of the scene.</param>
         private void AddScene(string sceneName)
         {
             Debug.Assert(!string.IsNullOrEmpty(sceneName.Trim()));
             _scenes.Add(new Scene(this, sceneName));
         }
+
+        /// <summary>
+        /// 根据场景实例移除场景
+        /// </summary>
+        /// <param name="scene">The scene.</param>
         private void RemoveScene(Scene scene)
         {
             Debug.Assert(_scenes.Contains(scene));
             _scenes.Remove(scene);
         }
+
+        /// <summary>
+        /// 反序列化读取项目配置文件
+        /// </summary>
+        /// <param name="file">The file.</param>
+        /// <returns></returns>
         public static Project Load(string file)
         {
             Debug.Assert(File.Exists(file));
             return Serializer.FromFile<Project>(file);
         }
+        /// <summary>
+        /// 退出程序时要做的事情
+        /// </summary>
         public void Unload()
         {
+            UnloadGameCodeDll();
             // 退出主程序时要关闭VS
             VisualStudio.CloseVisualStudio();
             UndoRedo.Reset();
         }
 
+        /// <summary>
+        /// 调用序列化器进行持久化
+        /// </summary>
+        /// <param name="project">The project.</param>
         public static void Save(Project project)
         {
             Serializer.ToFile(project, project.FullPath);
@@ -230,8 +314,13 @@ namespace PrimalEditor.GameProject
             // 现在选择的编译配置文件名
             var configName = GetConfigurationName(DllBuildConfig);
             var dll = $@"{Path}x64\{configName}\{Name}.dll";
+            AvailableScripts = null;
             if (File.Exists(dll) && EngineAPI.LoadGameCodeDll(dll) != 0)
             {
+                AvailableScripts = EngineAPI.GetScriptNames();
+                // 当前激活的场景里[一个].所有的游戏实体.找到里面只要有脚本文件的，把它们激活状态全部设置为true
+                // TODEBUG: 这里有问题，初始化时创建的gameentity并没有脚本属性[现在再将每个entity的IsActive都设置为True]
+                ActiveScene.GameEntities.Where(x => x.GetComponent<Script>() != null).ToList().ForEach(x => x.IsActive = true);
                 Logger.Log(MessageType.Info, "Game Code DLL loaded successfully.");
             }
             else
@@ -245,8 +334,11 @@ namespace PrimalEditor.GameProject
         /// </summary>
         private void UnloadGameCodeDll()
         {
+            // 当前激活的场景里[一个].所有的游戏实体.找到里面只要有脚本文件的，把它们激活状态全部设置为false
+            ActiveScene.GameEntities.Where(x => x.GetComponent<Script>() != null).ToList().ForEach(x => x.IsActive = false);
             if (EngineAPI.UnloadGameCodeDll() != 0)
             {
+                AvailableScripts = null;
                 Logger.Log(MessageType.Info, "Game Code DLL unloaded successfully.");
             }
         }
@@ -262,6 +354,8 @@ namespace PrimalEditor.GameProject
                 OnPropertyChanged(nameof(Scenes));
             }
             ActiveScene = Scenes.FirstOrDefault(x => x.IsActive);
+
+            Debug.Assert(ActiveScene != null);
 
             // [异步] 加载时要导入gamecode生成的dll文件
             {

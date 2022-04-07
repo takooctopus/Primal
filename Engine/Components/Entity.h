@@ -32,7 +32,7 @@ namespace primal {
 		entity create(entity_info info);
 
 		/// <summary>
-		/// 从数组移除游戏实体
+		/// 从数组移除游戏实体，要注意移除顺序要反向【让我找了半天的BUG】要不就崩溃了
 		/// </summary>
 		/// <param name="id"></param>
 		void remove(entity_id id);

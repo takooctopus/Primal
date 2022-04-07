@@ -44,6 +44,9 @@ namespace PrimalEditor.Utilities
                
         }
     }
+    /// <summary>
+    /// 撤销重做类UndoRedo
+    /// </summary>
     public class UndoRedo
     {
         private bool _enableAdd = true;

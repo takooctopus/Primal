@@ -230,17 +230,19 @@ namespace PrimalEditor.GameDev
         public static bool IsDebugging()
         {
             bool result = false;
-            for(int i = 0; i < 3; i++)
+            bool tryAgain = true;
+            for(int i = 0; i < 3 && tryAgain; i++)
             {
                 try
                 {
                     result = _vsInstance != null
                         && (_vsInstance.Debugger.CurrentProgram != null || _vsInstance.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgRunMode);
+                    tryAgain = false;
                 }
                 catch (Exception ex)
                 {
                     Debug.WriteLine(ex.Message);
-                    if (!result) System.Threading.Thread.Sleep(1000);
+                    System.Threading.Thread.Sleep(1000);
                 }
                 if (result) break;
             }
@@ -266,11 +268,10 @@ namespace PrimalEditor.GameDev
             BuildDone = BuildSuceeded = false;
 
             // TODO: 现在这个只是简易实现，最好还是用信息过滤器来实现忙碌信息
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 3 && !BuildDone; i++)
             {
                 try
                 {
-                    if (BuildSuceeded) break;
                     if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(project.Solution);
                     _vsInstance.MainWindow.Visible = showWindow;
 
