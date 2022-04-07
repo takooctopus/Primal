@@ -45,6 +45,7 @@ namespace primal::platform {
 		/// <returns>
 		///   <c>true</c> if this instance is fullscreen; otherwise, <c>false</c>.
 		/// </returns>
+		[[nodiscard]]
 		bool is_fullscreen() const;
 		
 		/// <summary>

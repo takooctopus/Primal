@@ -1,4 +1,6 @@
 #pragma once
+#include <thread>
+
 class test {
 public:
 	virtual bool initialize() = 0;

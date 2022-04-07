@@ -76,6 +76,27 @@ namespace primal::platform {
 			case WM_DESTROY:
 				get_from_handle(hwnd).is_closed = true;
 				break;
+			case WM_EXITSIZEMOVE:
+				info = &get_from_handle(hwnd);
+				break;
+			case WM_SIZE:
+				if (wparam == SIZE_MAXIMIZED) {
+					info = &get_from_handle(hwnd);
+				}
+				break;
+			case WM_SYSCOMMAND:
+				if (wparam == SC_RESTORE) {
+					info = &get_from_handle(hwnd);
+				}
+				break;
+			default:
+				break;
+			}
+
+			if (info) {
+				assert(info->hwnd);
+				GetClientRect(info->hwnd, info->is_fullscreen ? &info->fullscreen_area : &info->client_area);
+
 			}
 
 			LONG_PTR long_ptr{ GetWindowLongPtr(hwnd,0) };
@@ -219,7 +240,7 @@ namespace primal::platform {
 		wc.lpszClassName = L"PrimalWindow";
 		wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
 
-		// 注册window class
+		// 注册window class [注意这个函数可能会失败，因为可能会多次注册相同的class]
 		RegisterClassExW(&wc);
 
 		window_info info{};
@@ -252,6 +273,7 @@ namespace primal::platform {
 		);
 
 		if (info.hwnd) {
+			SetLastError(0);
 			const window_id id{ add_to_windows(info) };
 			// 将window_id保存到WindowLongPtr里面去作为用户数据（方便我们以后拿到hwnd时去数组找对应的window是哪一个）
 			SetWindowLongPtr(info.hwnd, GWLP_USERDATA, (LONG_PTR)id);
@@ -283,11 +305,12 @@ namespace primal::platform {
 		assert(is_valid());
 		set_window_full_screen(_id, is_fullscreen);
 	}
-
+	[[nodiscard]]
 	bool window::is_fullscreen() const {
 		assert(is_valid());
 		return is_window_full_screen(_id);
 	}
+
 	void* window::handle() const {
 		assert(is_valid());
 		return get_window_handle(_id);
