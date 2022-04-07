@@ -111,7 +111,7 @@ namespace PrimalEditor.GameProject
             get => _availableScriptes;
             set
             {
-                if(_availableScriptes != value)
+                if (_availableScriptes != value)
                 {
                     _availableScriptes = value;
                     OnPropertyChanged(nameof(AvailableScripts));
@@ -177,6 +177,10 @@ namespace PrimalEditor.GameProject
         public ICommand RemoveSceneCommand { get; private set; }
         public ICommand SaveCommand { get; private set; }
         public ICommand BuildCommand { get; private set; }
+        public ICommand DebugStartCommand { get; private set; }
+        public ICommand DebugStartWithoutDebuggingCommand { get; private set; }
+        public ICommand DebugStopCommand { get; private set; }
+
 
         /// <summary>
         /// 对于Command的设定函数
@@ -215,6 +219,10 @@ namespace PrimalEditor.GameProject
             SaveCommand = new RelayCommand<object>(x => Save(this));
             BuildCommand = new RelayCommand<bool>(async x => await BuildGameCodeDll(x), x => !VisualStudio.IsDebugging() && VisualStudio.BuildDone);
 
+            DebugStartCommand = new RelayCommand<object>(async x => await RunGame(true), x => !VisualStudio.IsDebugging() && VisualStudio.BuildDone);
+            DebugStartWithoutDebuggingCommand = new RelayCommand<object>(async x => await RunGame(false), x => !VisualStudio.IsDebugging() && VisualStudio.BuildDone);
+            DebugStopCommand = new RelayCommand<object>(async x => await StopGame(), x => VisualStudio.IsDebugging());
+
 
             OnPropertyChanged(nameof(AddSceneCommand));
             OnPropertyChanged(nameof(RemoveSceneCommand));
@@ -222,6 +230,9 @@ namespace PrimalEditor.GameProject
             OnPropertyChanged(nameof(RedoCommand));
             OnPropertyChanged(nameof(SaveCommand));
             OnPropertyChanged(nameof(BuildCommand));
+            OnPropertyChanged(nameof(DebugStartCommand));
+            OnPropertyChanged(nameof(DebugStartWithoutDebuggingCommand));
+            OnPropertyChanged(nameof(DebugStopCommand));
         }
 
         /// <summary>
@@ -281,6 +292,18 @@ namespace PrimalEditor.GameProject
             Serializer.ToFile(project, project.FullPath);
             Logger.Log(MessageType.Info, $"Project saved to {project.FullPath}");
         }
+
+        private async Task RunGame(bool debug)
+        {
+            var configName = GetConfigurationName(standAloneBuildConfig);
+            await Task.Run(() => VisualStudio.BuildSolution(this, configName, debug));
+            if (VisualStudio.BuildSuceeded)
+            {
+                await Task.Run(() => VisualStudio.Run(this, configName, debug));
+            }
+        }
+
+        private async Task StopGame() => await Task.Run(() => VisualStudio.Stop());
 
         /// <summary>
         /// 用来形成Icommand的元素的 构建项目函数

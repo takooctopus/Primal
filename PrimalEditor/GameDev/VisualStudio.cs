@@ -89,7 +89,7 @@ namespace PrimalEditor.GameDev
                         {
                             // [BUG警告：] 我在这里找了好久BUG不知道为什么到这里就崩溃，不返回信息，找了好久才发现是之前打开的VS僵尸进程导致的，解决方法就是到任务管理器中找到对应僵尸进程的VS进程kill掉就好，我是怎么发现的呢，是因为我发现上面name有时会出现两个VisualStudio.DTE.17.0:xxxx的字样，有时第一个崩有时第二个崩，而我只开了一个VS窗口。我只能说简单的嘴臭，极致的享受。
                             hResult = rot.GetObject(currentMoniker[0], out object obj);
-                            if (hResult < 0 || obj == null) 
+                            if (hResult < 0 || obj == null)
                                 throw new COMException($"Running object table's GetObject() returned HRESULT: {hResult:X8}");
                             // 把进程object转化成对应的DTE2对象
                             EnvDTE80.DTE2 dte = obj as EnvDTE80.DTE2;
@@ -162,9 +162,9 @@ namespace PrimalEditor.GameDev
                     foreach (EnvDTE.Project project in _vsInstance.Solution.Projects)
                     {
                         // 找到对应的项目文件名xxx.vcxproj，要是包含我们要的的项目名，就直接添加进project里
-                        if(project.UniqueName.Contains(projectName))
+                        if (project.UniqueName.Contains(projectName))
                         {
-                            foreach(var file in files)
+                            foreach (var file in files)
                             {
                                 //向项目中添加文件
                                 project.ProjectItems.AddFromFile(file);
@@ -231,7 +231,7 @@ namespace PrimalEditor.GameDev
         {
             bool result = false;
             bool tryAgain = true;
-            for(int i = 0; i < 3 && tryAgain; i++)
+            for (int i = 0; i < 3 && tryAgain; i++)
             {
                 try
                 {
@@ -303,5 +303,21 @@ namespace PrimalEditor.GameDev
             }
         }
 
+        public static void Run(Project project, string configName, bool debug)
+        {
+            if (_vsInstance != null && !IsDebugging() && BuildDone && BuildSuceeded)
+            {
+                _vsInstance.ExecuteCommand(debug ? "Debug.Start" : "Debug.StartWithoutDebugging");
+            }
+
+        }
+
+        public static void Stop()
+        {
+            if(_vsInstance != null && IsDebugging())
+            {
+                _vsInstance.ExecuteCommand("Debug.StopDebugging");
+            }
+        }
     }
 }
