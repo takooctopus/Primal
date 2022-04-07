@@ -11,6 +11,9 @@ namespace primal::platform {
 	using window_proc = LRESULT(*)(HWND, UINT, WPARAM, LPARAM);
 	using window_handle = HWND;
 
+	/// <summary>
+	/// 窗口初始化信息结构体
+	/// </summary>
 	struct window_init_info
 	{
 		window_proc			callback{ nullptr };

@@ -146,8 +146,7 @@ namespace primal::platform {
 					GetWindowRect(info.hwnd, &rect);
 					info.top_left.x = rect.left;
 					info.top_left.y = rect.top;
-					info.style = 0;
-					SetWindowLongPtr(info.hwnd, GWL_STYLE, info.style);
+					SetWindowLongPtr(info.hwnd, GWL_STYLE, 0);
 					ShowWindow(info.hwnd, SW_MAXIMIZE);
 				}
 				else {
@@ -199,7 +198,7 @@ namespace primal::platform {
 		[[nodiscard]]
 		math::u32v4 get_window_size(window_id id) {
 			window_info& info{ get_from_id(id) };
-			RECT area{ info.is_fullscreen ? info.fullscreen_area : info.client_area };
+			RECT& area{ info.is_fullscreen ? info.fullscreen_area : info.client_area };
 			return { (u32)area.left, (u32)area.top, (u32)area.right, (u32)area.bottom };
 		}
 
@@ -248,6 +247,7 @@ namespace primal::platform {
 		window_info info{};
 		info.client_area.right = (init_info && init_info->width) ? init_info->left + init_info->width : info.client_area.right;
 		info.client_area.bottom = (init_info && init_info->height) ? init_info->top + init_info->height : info.client_area.bottom;
+		info.style |= parent ? WS_CHILD : WS_OVERLAPPEDWINDOW;
 		
 		RECT rect{ info.client_area };
 
@@ -259,7 +259,6 @@ namespace primal::platform {
 		const s32 width{ rect.right - rect.left};
 		const s32 height{ rect.bottom - rect.top };
 
-		info.style |= parent ? WS_CHILD : WS_OVERLAPPEDWINDOW;
 
 		// 创建窗口实例
 		info.hwnd = CreateWindowEx(
