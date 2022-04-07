@@ -36,6 +36,8 @@
     <ClCompile Include="Components\Entity.cpp" />
     <ClCompile Include="Components\Script.cpp" />
     <ClCompile Include="Components\Transform.cpp" />
+    <ClCompile Include="Content\ContentLoader.cpp" />
+    <ClCompile Include="Content\ContentLoader.h" />
     <ClCompile Include="Core\Engine.cpp" />
     <ClCompile Include="Core\Main.cpp" />
   </ItemGroup>

@@ -20,5 +20,7 @@
     <ClCompile Include="Components\Script.cpp" />
     <ClCompile Include="Core\Main.cpp" />
     <ClCompile Include="Core\Engine.cpp" />
+    <ClCompile Include="Content\ContentLoader.h" />
+    <ClCompile Include="Content\ContentLoader.cpp" />
   </ItemGroup>
 </Project>
