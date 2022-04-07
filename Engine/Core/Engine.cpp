@@ -1,12 +1,51 @@
+#if !defined(SHIPPING)
+
 #include "..\Content\ContentLoader.h"
 #include "..\Components\Script.h"
+#include "..\Platform\PlatformTypes.h"
+#include "..\Platform\Platform.h"
+#include "..\Graphics\Renderer.h"
 #include <thread>
 
-#if !defined(SHIPPING)
+using namespace primal;
+
+namespace {
+	graphics::render_surface game_window{};
+
+	LRESULT win_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
+		switch (msg) {
+		case WM_DESTROY:
+		{
+			bool all_close{ true };
+			if(game_window.window.is_closed()) {
+				PostQuitMessage(0);
+				return 0;
+			}
+			break;
+		}
+		case WM_SYSCHAR:
+			// alt+enterÇÐ»»È«ÆÁ
+			if (wparam == VK_RETURN && (HIWORD(lparam) & KF_ALTDOWN)) {
+				game_window.window.set_fullscreen(!game_window.window.is_fullscreen());
+				return 0;
+			}
+			break;
+		default: break;
+		}
+		return DefWindowProc(hwnd, msg, wparam, lparam);
+	}
+}// ÄäÃûnamespace
 
 [[nodiscard]]
 bool engine_initialize() {
-	bool result{ primal::content::load_game() };
+	if (!primal::content::load_game())return false;
+	platform::window_init_info info{
+		&win_proc, nullptr, L"Primal Game" //title
+	};
+	game_window.window = platform::create_window(&info);
+	if (!game_window.window.is_valid()) {
+		return false;
+	}
 	return true;
 };
 
@@ -16,6 +55,7 @@ void engine_update() {
 };
 
 void engine_shutdown() {
+	platform::remove_window(game_window.window.get_id());
 	primal::content::unload_game();
 };
 

@@ -66,7 +66,7 @@ namespace primal::platform {
 		/// </summary>
 		/// <returns></returns>
 		[[nodiscard]]
-		const math::u32v4 size() const;
+		math::u32v4 size() const;
 		
 		/// <summary>
 		/// 根据宽高重新伸缩窗口
@@ -79,19 +79,19 @@ namespace primal::platform {
 		/// 获取窗口宽度
 		/// </summary>
 		/// <returns></returns>
-		const u32 witdh() const;
+		u32 witdh() const;
 
 		/// <summary>
 		/// 获取窗口高度
 		/// </summary>
 		/// <returns></returns>
-		const u32 height() const;
+		u32 height() const;
 		
 		/// <summary>
 		/// 窗口现在是否关闭
 		/// </summary>
 		/// <returns></returns>
-		const bool is_closed() const;
+		bool is_closed() const;
 
 	private:
 		window_id _id{ id::invalid_id };

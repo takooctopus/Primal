@@ -220,7 +220,9 @@ namespace primal::platform {
 	[[nodiscard]]
 	window create_window(const window_init_info* const init_info  /* = nullptr */)
 	{
+		// 看用户传callback函数进来了嘛
 		window_proc callback{ init_info ? init_info->callback : nullptr };
+		// 如果是用编辑器，就有parent进程
 		window_handle parent{ init_info ? init_info->parent : nullptr };
 
 		WNDCLASSEX wc;
@@ -244,15 +246,18 @@ namespace primal::platform {
 		RegisterClassExW(&wc);
 
 		window_info info{};
-		RECT rc{ info.client_area };
+		info.client_area.right = (init_info && init_info->width) ? init_info->left + init_info->width : info.client_area.right;
+		info.client_area.bottom = (init_info && init_info->height) ? init_info->top + init_info->height : info.client_area.bottom;
+		
+		RECT rect{ info.client_area };
 
-		AdjustWindowRect(&rc, info.style, false);
+		AdjustWindowRect(&rect, info.style, false);
 
 		const wchar_t* caption{ (init_info && init_info->caption) ? init_info->caption : L"Primal Game" };
-		const s32 left{ (init_info && init_info->left) ? init_info->left : info.client_area.left };
-		const s32 top{ (init_info && init_info->top) ? init_info->top : info.client_area.top };
-		const s32 width{ (init_info && init_info->width) ? init_info->width : rc.right - rc.left };
-		const s32 height{ (init_info && init_info->height) ? init_info->height : rc.bottom - rc.top };
+		const s32 left{ (init_info) ? init_info->left : info.top_left.x};
+		const s32 top{ (init_info) ? init_info->top : info.top_left.y };
+		const s32 width{ rect.right - rect.left};
+		const s32 height{ rect.bottom - rect.top };
 
 		info.style |= parent ? WS_CHILD : WS_OVERLAPPEDWINDOW;
 
@@ -273,7 +278,7 @@ namespace primal::platform {
 		);
 
 		if (info.hwnd) {
-			SetLastError(0);
+			DEBUG_OP(SetLastError(0));
 			const window_id id{ add_to_windows(info) };
 			// 将window_id保存到WindowLongPtr里面去作为用户数据（方便我们以后拿到hwnd时去数组找对应的window是哪一个）
 			SetWindowLongPtr(info.hwnd, GWLP_USERDATA, (LONG_PTR)id);
@@ -295,7 +300,7 @@ namespace primal::platform {
 		DestroyWindow(info.hwnd);
 		remove_from_windows(id);
 	}
-#elif
+#else
 #error "must implement at least one platform"
 #endif // _WIN64
 
@@ -320,7 +325,7 @@ namespace primal::platform {
 		set_window_caption(_id, caption);
 	}
 	[[nodiscard]]
-	const math::u32v4 window::size() const {
+	math::u32v4 window::size() const {
 		assert(is_valid());
 		return get_window_size(_id);
 	}
@@ -328,18 +333,18 @@ namespace primal::platform {
 		assert(is_valid());
 		resize_window(_id, width, height);
 	}
-	const u32 window::witdh() const {
+	u32 window::witdh() const {
 		assert(is_valid());
 		math::u32v4 s{ size() };
 		return s.z - s.x;
 	}
 
-	const u32 window::height() const {
+	u32 window::height() const {
 		assert(is_valid());
 		math::u32v4 s{ size() };
 		return s.w - s.y;
 	}
-	const bool window::is_closed() const {
+	bool window::is_closed() const {
 		assert(is_valid());
 		return is_window_closed(_id);
 	}
