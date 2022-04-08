@@ -96,6 +96,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Common\Helpers.cs" />
     <Compile Include="Common\RelayCommand.cs" />
     <Compile Include="Components\Component.cs" />
     <Compile Include="Components\ComponentFactory.cs" />

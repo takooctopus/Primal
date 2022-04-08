@@ -47,6 +47,8 @@ namespace PrimalEditor.DllWrappers
 
         [DllImport(_engineDll, CharSet = CharSet.Ansi)]
         public static extern int LoadGameCodeDll(string dllPath);
+
+
         [DllImport(_engineDll, CharSet = CharSet.Ansi)]
         public static extern int UnloadGameCodeDll();
 
@@ -73,6 +75,9 @@ namespace PrimalEditor.DllWrappers
 
         [DllImport(_engineDll)]
         public static extern void RemoveRenderSurface(int surfaceId);
+
+        [DllImport(_engineDll)]
+        public static extern void ResizeRenderSurface(int surfaceId);
 
         [DllImport(_engineDll)]
         public static extern IntPtr GetWindowHandle(int surfaceId); 

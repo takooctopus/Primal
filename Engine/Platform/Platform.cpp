@@ -122,10 +122,16 @@ namespace primal::platform {
 		/// <param name="id">The identifier.</param>
 		void resize_window(window_id id, u32 width, u32 height) {
 			window_info& info{ get_from_id(id) };
-			RECT& area{ info.is_fullscreen ? info.fullscreen_area : info.client_area };
-			area.right = area.left + width;
-			area.bottom = area.top + height;
-			resize_window(info, area);
+			if (info.style & WS_CHILD) {
+				// 要是是host在editor中，那么就只更新client_area
+				GetClientRect(info.hwnd, &info.client_area);
+			}
+			else {
+				RECT& area{ info.is_fullscreen ? info.fullscreen_area : info.client_area };
+				area.right = area.left + width;
+				area.bottom = area.top + height;
+				resize_window(info, area);
+			}
 		}
 
 
@@ -248,15 +254,15 @@ namespace primal::platform {
 		info.client_area.right = (init_info && init_info->width) ? init_info->left + init_info->width : info.client_area.right;
 		info.client_area.bottom = (init_info && init_info->height) ? init_info->top + init_info->height : info.client_area.bottom;
 		info.style |= parent ? WS_CHILD : WS_OVERLAPPEDWINDOW;
-		
+
 		RECT rect{ info.client_area };
 
 		AdjustWindowRect(&rect, info.style, false);
 
 		const wchar_t* caption{ (init_info && init_info->caption) ? init_info->caption : L"Primal Game" };
-		const s32 left{ (init_info) ? init_info->left : info.top_left.x};
+		const s32 left{ (init_info) ? init_info->left : info.top_left.x };
 		const s32 top{ (init_info) ? init_info->top : info.top_left.y };
-		const s32 width{ rect.right - rect.left};
+		const s32 width{ rect.right - rect.left };
 		const s32 height{ rect.bottom - rect.top };
 
 
@@ -298,7 +304,7 @@ namespace primal::platform {
 		window_info info{ get_from_id(id) };
 		DestroyWindow(info.hwnd);
 		remove_from_windows(id);
-	}
+}
 #else
 #error "must implement at least one platform"
 #endif // _WIN64
