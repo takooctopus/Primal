@@ -94,6 +94,8 @@ namespace PrimalEditor.GameDev
                             // 把进程object转化成对应的DTE2对象
                             EnvDTE80.DTE2 dte = obj as EnvDTE80.DTE2;
                             var solutionName = dte.Solution.FullName;
+
+
                             // 我们对比一下这进程打开的解决方案的名称和我们新建脚本所属的解决方案是不是同一个，是的话就直接添加，不用再开一个VS窗口进程了
                             if (solutionName == solutionPath)
                             {

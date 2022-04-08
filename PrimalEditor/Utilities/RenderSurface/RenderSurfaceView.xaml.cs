@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -25,6 +26,17 @@ namespace PrimalEditor.Utilities
         /// </summary>
         private RenderSurfaceHost _host = null;
 
+        /// <summary>
+        /// 枚举类，这个应该与C++里面的传递消息相同，去WinUser.h中去找
+        /// </summary>
+        private enum Win32Msg
+        {
+            WM_SIZE = 0x0005,
+            WM_SIZING = 0x0214,
+            WM_ENTERSIZEMOVE = 0x0231,
+            WM_EXITSIZEMOVE = 0x0232,
+        }
+
         public RenderSurfaceView()
         {
             InitializeComponent();
@@ -35,7 +47,29 @@ namespace PrimalEditor.Utilities
         {
             Loaded -= OnRenderSurfaceViewLoaded;
             _host = new RenderSurfaceHost(ActualWidth, ActualHeight);
+            // 添加一个钩子来处理内部resize问题
+            _host.MessageHook += new HwndSourceHook(HostMsgFilter);
             Content = _host;
+        }
+
+        private IntPtr HostMsgFilter(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            switch ((Win32Msg)msg)
+            {
+                case Win32Msg.WM_SIZE:
+                    _host.Resize();
+                    break;
+                case Win32Msg.WM_SIZING:
+                    throw new Exception();
+                    break;
+                case Win32Msg.WM_ENTERSIZEMOVE:
+                    throw new Exception();
+                    break;
+                case Win32Msg.WM_EXITSIZEMOVE:
+                    throw new Exception();
+                    break;
+            }
+            return IntPtr.Zero;
         }
 
         #region IDisposable support
