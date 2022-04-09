@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,15 +21,35 @@ namespace PrimalEditor
         {
             if (!(depObject is Visual)) return null;
             var parent = VisualTreeHelper.GetParent(depObject);
-            while(parent != null)
+            while (parent != null)
             {
-                if(parent is T type)
+                if (parent is T type)
                 {
                     return type;
                 }
                 parent = VisualTreeHelper.GetParent(parent);
             }
             return null;
+        }
+    }
+
+    public static class ContentHelper
+    {
+        /// <summary>
+        /// 根据长度返回名称，最低8位
+        /// </summary>
+        /// <param name="length">The length.</param>
+        /// <returns></returns>
+        public static string GetRandomString(int length = 8)
+        {
+            if (length <= 0) length = 8;
+            var n = length / 11;
+            var sb = new StringBuilder(n);
+            for (int i = 0; i < n; i++)
+            {
+                sb.Append(Path.GetRandomFileName().Replace(".", "")); //因为GetRandomFileName()返回的字符串去掉小数点是11位的
+            }
+            return sb.ToString(0, length);
         }
     }
 }

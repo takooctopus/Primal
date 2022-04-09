@@ -103,13 +103,10 @@ namespace PrimalEditor.Utilities
                     break;
                 case Win32Msg.WM_SIZING:
                     throw new Exception();
-                    break;
                 case Win32Msg.WM_ENTERSIZEMOVE:
                     throw new Exception();
-                    break;
                 case Win32Msg.WM_EXITSIZEMOVE:
                     throw new Exception();
-                    break;
                 default:
                     break;
             }
