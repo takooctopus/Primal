@@ -27,9 +27,6 @@ namespace PrimalEditor.Utilities
         /// </summary>
         private RenderSurfaceHost _host = null;
 
-        private bool _canResize = true;
-        private bool _moved = false;
-
 
         /// <summary>
         /// 枚举类，这个应该与C++里面的传递消息相同，去WinUser.h中去找
@@ -55,40 +52,9 @@ namespace PrimalEditor.Utilities
             // 添加一个钩子来处理内部resize问题
             _host.MessageHook += new HwndSourceHook(HostMsgFilter);
             Content = _host;
-
-            // 因为对主程序窗口进行拖动缩放时会出现里面hosted window缩放事件，这里是为了解决逻辑不一致问题的
-            var window = this.FindVisualParent<Window>();
-            Debug.Assert(window != null);
-            var helper = new WindowInteropHelper(window);
-            if(helper.Handle != null)
-            {
-                HwndSource.FromHwnd(helper.Handle)?.AddHook(HwndMessageHook);
-            }
         }
 
-        private IntPtr HwndMessageHook(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
-        {
-            switch ((Win32Msg)msg)
-            {
-                case Win32Msg.WM_SIZING:
-                    _canResize = false;
-                    _moved = false;
-                    break;
-                case Win32Msg.WM_ENTERSIZEMOVE:
-                    _moved = true;
-                    break;
-                case Win32Msg.WM_EXITSIZEMOVE:
-                    _canResize = true;
-                    if (!_moved)
-                    {
-                        _host.Resize();
-                    }
-                    break;
-                default:
-                    break;
-            }
-            return IntPtr.Zero;
-        }
+        
     
 
         private IntPtr HostMsgFilter(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -96,10 +62,6 @@ namespace PrimalEditor.Utilities
             switch ((Win32Msg)msg)
             {
                 case Win32Msg.WM_SIZE:
-                    if(_canResize)
-                    {
-                        _host.Resize();
-                    }
                     break;
                 case Win32Msg.WM_SIZING:
                     throw new Exception();

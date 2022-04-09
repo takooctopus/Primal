@@ -346,5 +346,7 @@ namespace primal::tools {
 			}
 		}
 
+		assert(scene_size == at);
+
 	}
 }//namespace primal::tools

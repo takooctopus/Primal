@@ -8,10 +8,19 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcxproj", "{03256A24-95B3-448D-B838-B93A0BDB2FE8}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineTest", "EngineTest\EngineTest.vcxproj", "{5C1CF4F6-DC04-49E8-B64A-9811E2C7087A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03256A24-95B3-448D-B838-B93A0BDB2FE8} = {03256A24-95B3-448D-B838-B93A0BDB2FE8}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EngineDLL", "EngineDLL\EngineDLL.vcxproj", "{A3F1C4C6-B158-4D19-9CAD-CA4DF98E5269}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03256A24-95B3-448D-B838-B93A0BDB2FE8} = {03256A24-95B3-448D-B838-B93A0BDB2FE8}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ContentTools", "ContentTools\ContentTools.vcxproj", "{3F6C14B3-7912-4174-BA3F-742524FB53F4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03256A24-95B3-448D-B838-B93A0BDB2FE8} = {03256A24-95B3-448D-B838-B93A0BDB2FE8}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
