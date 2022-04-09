@@ -17,6 +17,7 @@
 #include "Id.h"
 #include "..\Utilities\Utilities.h"
 #include "..\Utilities\MathTypes.h"
+#include "..\Utilities\Math.h"
 
 
 // macros
