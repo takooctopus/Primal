@@ -96,7 +96,7 @@ namespace primal::tools {
 					// 添加进去一个三角形[四格格点(quat)的左上角三角形][要是flip_winding我们顺序要变一下，顺序决定了法向量的方向]
 					m.raw_indices.emplace_back(index[0]);
 					m.raw_indices.emplace_back(index[flip_winding ? 2 : 1]);
-					m.raw_indices.emplace_back(index[flip_winding ? 1 : 2]); 
+					m.raw_indices.emplace_back(index[flip_winding ? 1 : 2]);
 
 					// 添加进去一个三角形[四格格点(quat)的右下角三角形][要是flip_winding我们顺序要变一下，顺序决定了法向量的方向]
 					m.raw_indices.emplace_back(index[2]);
@@ -144,8 +144,13 @@ namespace primal::tools {
 	}// 匿名namspace
 
 
+	/// <summary>
+	/// 对外dll接口：根据传入的场景信息和原始信息创建 网状数据(mesh)
+	/// </summary>
+	/// <param name="data">场景数据指针</param>
+	/// <param name="info">The information.</param>
 	EDITOR_INTERFACE
-		void CreatePrimitiveMesh(scene_data* data, primitive_init_info* info) {
+	void CreatePrimitiveMesh(scene_data* data, primitive_init_info* info) {
 		assert(data && info);
 		assert(info->type < primitive_mesh_type::count);
 		scene scene{};

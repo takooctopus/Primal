@@ -9,7 +9,7 @@ namespace primal::tools {
 	} //匿名namespace
 
 	namespace packed_vertex {
-		struct vertex_static {
+		struct vertex_static {	// 大小不变的顶点结构【最终打包后的顶点数据】
 			math::v3			position;
 			u8					reserved[3];
 			u8					t_sign;		//bit 0: tangent handedness * (tangent.z sign); bit 1: normal z sign [0=>-1, 1=>1]
@@ -20,7 +20,7 @@ namespace primal::tools {
 
 	}//namespace packed_vertex
 
-	struct vertex {
+	struct vertex {	// 顶点
 		math::v4	tangent{};	//切线
 		math::v3	position{};	//顶点(x,y,z)坐标
 		math::v3	normal{};	//法线[标准化三维向量]
@@ -49,37 +49,37 @@ namespace primal::tools {
 		u32										lod_id{ id::u32_invalid_id };
 	};
 
-	struct lod_group
+	struct lod_group	//层次细节
 	{
-		std::string			name;
-		utl::vector<mesh>	meshes;
+		std::string			name;	//层次细节的名称
+		utl::vector<mesh>	meshes;	//包含的网状数据数组
 	};
 
-	struct scene {
-		std::string					name;
-		utl::vector<lod_group>		lod_groups;
+	struct scene {	//场景
+		std::string					name;	//场景名称
+		utl::vector<lod_group>		lod_groups;	//层次细节数组
 	};
 
-	struct geometry_import_settings
+	struct geometry_import_settings	//几何导入设置
 	{
 		f32 smoothing_angle; // 平滑角度
-		u8 calculate_normals;	// 
-		u8 calculate_tangents;	//
-		u8 reverse_handedness;	// 左右手互换
-		u8 import_embeded_textures;
-		u8 import_animations;
+		u8 calculate_normals;	// 计算法线?(bool)
+		u8 calculate_tangents;	//计算切线?(bool)
+		u8 reverse_handedness;	// 左右手互换？(bool)
+		u8 import_embeded_textures; // 导入嵌入纹理?(bool)
+		u8 import_animations;	// 导入动画?(bool)
 	};
 
 	
 	/// <summary>
 	/// 场景信息
 	/// 包括一个buffer地址指针，buffer的大小以及一个geometry_import_settings几何导入设置
-	/// </summary>
+	/// </summary>  
 	struct scene_data
 	{
-		u8* buffer;
-		u32 buffer_size;
-		geometry_import_settings settings;
+		u8* buffer;	//指向buffer首地址的指针
+		u32 buffer_size;	//buffer大小
+		geometry_import_settings settings;	//几何导入设置
 	};
 
 	/// <summary>

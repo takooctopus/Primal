@@ -169,19 +169,23 @@ namespace primal::tools {
 		}
 
 		/// <summary>
-		/// 处理三角形顶点
+		/// 处理网图(mesh)三角形顶点
 		/// </summary>
 		/// <param name="m">The m.</param>
 		/// <param name="settings">The settings.</param>
 		void process_vertices(mesh& m, const geometry_import_settings& settings) {
 			assert((m.raw_indices.size() % 3) == 0);
+			// 如果导入设置中我们要计算法线或者法线数组为空，我们就要去计算法线
 			if (settings.calculate_normals || m.normals.empty()) {
 				recalculate_normals(m);
 			}
+			// 计算后根据平滑角平湖处理法线角度【硬角转软角】
 			process_normals(m, settings.smoothing_angle);
+			// 如果uv图为空，就去处理uv图
 			if (!m.uv_sets.empty()) {
 				process_uvs(m);
 			}
+			// 最后将其打包成稳定的vertex_static结构
 			pack_vertices_static(m);
 		}
 
@@ -308,8 +312,8 @@ namespace primal::tools {
 
 	void pack_data(const scene& scene, scene_data& data)
 	{
-		constexpr u64 su32{ sizeof(u32) };
-		const u64 scene_size{ get_scene_size(scene) };
+		constexpr u64 su32{ sizeof(u32) };	//uint32一共4Byte
+		const u64 scene_size{ get_scene_size(scene) };	//拿到整个场景的大小
 		data.buffer_size = (u32)scene_size;
 		data.buffer = (u8*)CoTaskMemAlloc(scene_size);
 		assert(data.buffer);
