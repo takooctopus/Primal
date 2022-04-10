@@ -23,6 +23,7 @@
 		<ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
 		<Platforms>x64</Platforms>
 		<Configurations>Debug;Release;DebugEditor;ReleaseEditor</Configurations>
+		<XamlDebuggingInformation>True</XamlDebuggingInformation>
 	</PropertyGroup>
 	<PropertyGroup>
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -140,9 +141,6 @@
 		<Resource Include="primal.ico" />
 	</ItemGroup>
 	<ItemGroup>
-		<Folder Include="Resources\" />
-	</ItemGroup>
-	<ItemGroup>
 	  <None Include="ProjectTemplates\EmptyProject\icon.png" />
 	  <None Include="ProjectTemplates\EmptyProject\MSVCProject" />
 	  <None Include="ProjectTemplates\EmptyProject\MSVCSolution" />
@@ -162,6 +160,11 @@
 	  <None Include="ProjectTemplates\TopToDownProject\screenshot.png" />
 	  <None Include="ProjectTemplates\TopToDownProject\template.xml" />
 	  <None Include="Properties\Settings.settings" />
+	  <Resource Include="Resources\PrimitiveMeshView\A.png" />
+	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.png" />
+	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.jpg">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </Resource>
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />

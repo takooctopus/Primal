@@ -284,6 +284,5 @@ namespace PrimalEditor.Components
             Refresh();
         }
 
-        public MSTransform() : base() { }
     }
 }

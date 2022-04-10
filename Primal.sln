@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.1.32319.34
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PrimalEditor", "PrimalEditor\PrimalEditor.csproj", "{A864AD3B-2753-4A38-863A-50246A7FB125}"
+	ProjectSection(ProjectDependencies) = postProject
+		{03256A24-95B3-448D-B838-B93A0BDB2FE8} = {03256A24-95B3-448D-B838-B93A0BDB2FE8}
+		{3F6C14B3-7912-4174-BA3F-742524FB53F4} = {3F6C14B3-7912-4174-BA3F-742524FB53F4}
+		{A3F1C4C6-B158-4D19-9CAD-CA4DF98E5269} = {A3F1C4C6-B158-4D19-9CAD-CA4DF98E5269}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Engine.vcxproj", "{03256A24-95B3-448D-B838-B93A0BDB2FE8}"
 EndProject

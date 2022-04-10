@@ -383,7 +383,6 @@ namespace PrimalEditor.Components
         /// Initializes a new instance of the <see cref="MSEntity"/> class.
         /// MSEntity 无参构造函数，为了暂时解决注入时预览问题
         /// </summary>
-        public MSEntity() { }
     }
 
     /// <summary>
@@ -391,12 +390,6 @@ namespace PrimalEditor.Components
     /// </summary>
     class MSGameEntity : MSEntity
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="MSEntity"/> class.
-        /// MSGameEntity 无参构造函数，为了暂时解决注入时预览问题
-        /// </summary>
-        public MSGameEntity() : base() { }
-
         public MSGameEntity(List<GameEntity> entities) : base(entities)
         {
             Refresh();

@@ -422,10 +422,5 @@ namespace PrimalEditor.GameProject
             Path = path;
             OnDeserialized(new StreamingContext());
         }
-
-        public Project()
-        {
-            // 无参函数，不应该使用
-        }
     }
 }

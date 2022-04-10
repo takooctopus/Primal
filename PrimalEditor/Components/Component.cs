@@ -84,6 +84,5 @@ namespace PrimalEditor.Components
                 if (_enableUpdates) UpdateComponents(e.PropertyName);
             };
         }
-        public MSComponent() { }
     }
 }
