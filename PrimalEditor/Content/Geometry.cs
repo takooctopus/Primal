@@ -136,9 +136,115 @@ namespace PrimalEditor.Content
         public ObservableCollection<MeshLOD> LODs { get; } = new ObservableCollection<MeshLOD>();
     }
 
+    /// <summary>
+    /// 导入几何设置类
+    /// </summary>
+    class GeometryImportSettings : ViewModelBase
+    {
+        //public float SmoothingAngle = 178f; // 平滑角度
+        //public byte CalculateNormals = 0;   // 计算法线?(bool)
+        //public byte CalculateTangents = 1;  //计算切线?(bool)
+        //public byte ReverseHandedness = 0;  // 左右手互换？(bool)
+        //public byte ImportEmbededTextures = 1; // 导入嵌入纹理?(bool)
+        //public byte ImportAnimations = 1;	// 导入动画?(bool)
+        private float _smoothingAngle;
+        public float SmoothingAngle
+        {
+            get => _smoothingAngle;
+            set
+            {
+                if (_smoothingAngle != value)
+                {
+                    _smoothingAngle = value;
+                    OnPropertyChanged(nameof(SmoothingAngle));
+                }
+            }
+        }
+
+        private bool _calculateNormals;
+        public bool CalculateNormals
+        {
+            get => _calculateNormals;
+            set
+            {
+                if (_calculateNormals != value)
+                {
+                    _calculateNormals = value;
+                    OnPropertyChanged(nameof(CalculateNormals));
+                }
+            }
+        }
+
+        private bool _calculateTangents;
+        public bool CalculateTangents
+        {
+            get => _calculateTangents;
+            set
+            {
+                if(_calculateTangents != value)
+                {
+                    _calculateTangents = value;
+                    OnPropertyChanged(nameof(CalculateTangents));
+                }
+            }
+        }
+
+        public bool _reverseHandedness;
+        public bool ReverseHandedness
+        {
+            get => _reverseHandedness;
+            set
+            {
+                if(_reverseHandedness != value)
+                {
+                    _reverseHandedness = value;
+                    OnPropertyChanged(nameof(ReverseHandedness));
+                }
+            }
+        }
+
+        public bool _importEmbeddedTextures;
+        public bool ImportEmbeddedTextures
+        {
+            get => _importEmbeddedTextures;
+            set
+            {
+                if (_importEmbeddedTextures != value)
+                {
+                    _importEmbeddedTextures = value;
+                    OnPropertyChanged(nameof(ImportEmbeddedTextures));
+                }
+            }
+        }
+        public bool _importAnimations;
+        public bool ImportAnimations
+        {
+            get => _importAnimations;
+            set
+            {
+                if (_importAnimations != value)
+                {
+                    _importAnimations = value;
+                    OnPropertyChanged(nameof(ImportAnimations));
+                }
+            }
+        }
+
+        public GeometryImportSettings()
+        {
+            CalculateNormals = false;
+            CalculateTangents = false;
+            SmoothingAngle = 178f;
+            ReverseHandedness = false;
+            ImportEmbeddedTextures = true;
+            ImportAnimations = true;
+        }
+    }
+
     internal class Geometry : Asset
     {
         private readonly List<LODGroup> _lodGroups = new List<LODGroup>();
+        public GeometryImportSettings ImportSettings { get; } = new GeometryImportSettings();
         public LODGroup GetLODGroup(int lodGroup = 0)
         {
             Debug.Assert(lodGroup >= 0 && lodGroup < _lodGroups.Count);

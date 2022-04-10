@@ -35,6 +35,7 @@ namespace PrimalEditor.Content
         {
             if (!IsInitialized) return;
             var primitiveType = (PrimitiveMeshType)PrimitiveMeshTypeComboBox.SelectedItem;
+            var smoothingAnle = 0;
             var info = new PrimitiveInitInfo()
             {
                 Type = primitiveType,
@@ -53,7 +54,15 @@ namespace PrimalEditor.Content
                 case PrimitiveMeshType.Cube:
                     return;
                 case PrimitiveMeshType.UvSphere:
-                    return;
+                    {
+                        info.SegmentX = (int)xSliderUvSphere.Value;
+                        info.SegmentY = (int)ySliderUvSphere.Value;
+                        info.Size.X = Value(xScalarBoxUvSphere, 0.001f);
+                        info.Size.Y = Value(yScalarBoxUvSphere, 0.001f);
+                        info.Size.Z = Value(zScalarBoxUvSphere, 0.001f);
+                        smoothingAnle = (int)angleSliderUvSphere.Value;
+                        break;
+                    }
                 case PrimitiveMeshType.IcoSphere:
                     return;
                 case PrimitiveMeshType.Cyclinder:
@@ -64,6 +73,7 @@ namespace PrimalEditor.Content
                     return;/*throw new ArgumentOutOfRangeException(nameof(primitiveType));*/
             }
             var geometry = new Geometry();
+            geometry.ImportSettings.SmoothingAngle = smoothingAnle;
             ContentToolsAPI.CreatePrimitiveMesh(geometry, info);
             (DataContext as GeometryEditor).SetAsset(geometry);
             OnTexture_CheckBox_Click(textureCheckBox, null);
@@ -73,7 +83,9 @@ namespace PrimalEditor.Content
         {
             var uris = new List<Uri>
             {
+                new Uri("pack://application:,,,/Resources/PrimitiveMeshView/PlaneTexture.png"),
                 new Uri("pack://application:,,,/Resources/PrimitiveMeshView/A.png"),
+                new Uri("pack://application:,,,/Resources/PrimitiveMeshView/UvTexture.png"),
             };
             _textures.Clear();
             foreach (var uri in uris)

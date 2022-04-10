@@ -6,6 +6,8 @@ namespace primal::tools {
 	namespace {
 
 		using namespace math;
+		using namespace DirectX;
+
 		using primitive_mesh_creator = void(*)(scene& scene, const primitive_init_info& info);
 
 		void create_plane(scene& scene, const primitive_init_info& info);
@@ -118,6 +120,157 @@ namespace primal::tools {
 			return m;
 		}
 
+
+		/// <summary>
+		/// 创建uv球
+		/// </summary>
+		/// <param name="info"></param>
+		/// <returns></returns>
+		[[nodiscard]]
+		mesh create_uv_sphere(const primitive_init_info& info) {
+			const u32 theta_count{ clamp(info.segments[axis::y], 2u, 64u) }; //从上顶点到下的线段数量[(不包含两顶点)]【点数量-1】
+			const u32 phi_count{ clamp(info.segments[axis::x],3u,64u) }; // 水平一圈的线段数量【等于点数量】
+			const f32 theta_step{ pi / theta_count };	// 竖直两点的夹角
+			const f32 phi_step{ two_pi / phi_count };	// 水平两点夹角
+
+			const u32 num_vertices{ 2 + (theta_count - 1) * phi_count };	//总顶点数
+			const u32 num_indices{ 2 * 3 * phi_count + 2 * 3 * phi_count * (theta_count - 2) }; // 总三角形顶点数【最上层一圈3n个，最下面一圈3n个，中间有2*3n(m-2)个】
+
+			mesh m{};
+			m.name = "uv_sphere";
+			m.positions.resize(num_vertices);
+
+			// 添加上顶点
+			u32 c{ 0 };
+			m.positions[c++] = { 0.f, info.size.y, 0.f };	// 上顶点只有y轴有值
+
+			// 中间的顶点
+			// 从第一排开始 θ = α => 2α => 3α => ... => pi-α 
+			for (u32 j{ 1 }; j <= (theta_count - 1); ++j) {
+				const f32 theta{ j * theta_step };
+				//每一排都要从 0 => 2pi - β
+				for (u32 i{ 0 }; i < phi_count; ++i) {
+					const f32 phi{ i * phi_step };
+					m.positions[c++] = {
+						info.size.x * XMScalarSin(theta) * XMScalarCos(phi),
+						info.size.y * XMScalarCos(theta),
+						-info.size.z * XMScalarSin(theta) * XMScalarSin(phi)
+					}; // x, z, y 右手坐标系
+				}
+			}
+
+			// 底部顶点
+			m.positions[c++] = { 0.f, -info.size.z, 0.f };
+			assert(c == num_vertices);
+
+			//重置序号，并分配空间
+			c = 0;
+			m.raw_indices.resize(num_indices);
+			utl::vector<v2> uvs(num_indices);
+			const f32 inv_theta_count{ 1.f / theta_count };
+			const f32 inv_phi_count{ 1.f / phi_count };
+
+			// 第一层三角形的三个顶点【第一个是北极点，后面俩依次加】
+			for (u32 i{ 0 }; i < phi_count - 1; ++i) {
+				uvs[c] = { (2 * i + 1) * 0.5f * inv_phi_count, 1.f };	//北极点的uv坐标(2i+1)
+				m.raw_indices[c++] = 0;
+				uvs[c] = { i * inv_phi_count, 1.f - inv_theta_count };
+				m.raw_indices[c++] = i + 1;
+				uvs[c] = { (i + 1) * inv_phi_count, 1.f - inv_theta_count };
+				m.raw_indices[c++] = i + 2;
+			}
+			{
+				uvs[c] = { 1.f - 0.5f * inv_phi_count, 1.f };	//北极点的uv坐标(2i+1)
+				m.raw_indices[c++] = 0;
+				uvs[c] = { 1.f - inv_phi_count, 1.f - inv_theta_count };
+				m.raw_indices[c++] = phi_count;
+				uvs[c] = { 1.f, 1.f - inv_theta_count };
+				m.raw_indices[c++] = 1;
+			}
+			// 中间几层的顶点
+			for (u32 j{ 0 }; j < (theta_count - 2); ++j) {	//纬度
+				for (u32 i{ 0 }; i < (phi_count - 1); ++i) {	//经度
+					const u32 index[4]{
+						1 + i + j * phi_count,	// 左上角点
+						1 + i + (j + 1) * phi_count,	//左下角点
+						1 + (i + 1) + (j + 1) * phi_count, //右下角点
+						1 + (i + 1) + j * phi_count	//右上角点
+					};	//以反时钟顺序组织
+					uvs[c] = { i * inv_phi_count, 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[0];
+					uvs[c] = { i * inv_phi_count, 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[1];
+					uvs[c] = { (i + 1) * inv_phi_count, 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[2];
+
+					uvs[c] = { i * inv_phi_count, 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[0];
+					uvs[c] = { (i + 1) * inv_phi_count, 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[2];
+					uvs[c] = { (i + 1) * inv_phi_count, 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[3];
+				}
+				{
+					const u32 index[4]{
+						phi_count + j * phi_count,
+						phi_count + (j + 1) * phi_count,
+						1 + (j + 1) * phi_count,
+						1 + j * phi_count
+					};
+					uvs[c] = { 1.f - inv_phi_count, 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[0];
+					uvs[c] = { 1.f - inv_phi_count, 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[1];
+					uvs[c] = { 1.f , 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[2];
+
+					uvs[c] = { 1.f - inv_phi_count, 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[0];
+					uvs[c] = { 1.f , 1.f - (j + 2) * inv_theta_count };
+					m.raw_indices[c++] = index[2];
+					uvs[c] = { 1.f , 1.f - (j + 1) * inv_theta_count };
+					m.raw_indices[c++] = index[3];
+				}
+			}
+
+			// 南极点
+			const u32 south_pole_index{ (u32)m.positions.size() - 1 };
+			for (u32 i{ 0 }; i < (phi_count - 1); ++i) {
+				uvs[c] = { (2 * i + 1) * 0.5f * inv_phi_count, 0.f };
+				m.raw_indices[c++] = south_pole_index;
+				uvs[c] = { (i + 1) * inv_phi_count, inv_theta_count };
+				m.raw_indices[c++] = south_pole_index - phi_count + i + 1;
+				uvs[c] = { i * inv_phi_count, inv_theta_count };
+				m.raw_indices[c++] = south_pole_index - phi_count + i;
+			}
+			{
+				uvs[c] = { 1.f - 0.5f * inv_phi_count, 0.f };
+				m.raw_indices[c++] = south_pole_index;
+				uvs[c] = { 1.f , inv_theta_count };
+				m.raw_indices[c++] = south_pole_index - phi_count;
+				uvs[c] = { 1.f - inv_phi_count , inv_theta_count };
+				m.raw_indices[c++] = south_pole_index - 1;
+			}
+
+			assert(c == num_indices);
+
+			m.uv_sets.emplace_back(uvs);
+
+			return m;
+		}
+
+
+
+
+
+
+
+
+		/// <summary>
+		/// 创建平面
+		/// </summary>
+		/// <param name="scene"></param>
+		/// <param name="info"></param>
 		void create_plane(scene& scene, const primitive_init_info& info) {
 			lod_group lod{};
 			lod.name = "plane";
@@ -127,8 +280,17 @@ namespace primal::tools {
 		void create_cube(scene& scene, const primitive_init_info& info) {
 
 		}
-		void create_uv_sphere(scene& scene, const primitive_init_info& info) {
 
+		/// <summary>
+		/// 创建纹理
+		/// </summary>
+		/// <param name="scene"></param>
+		/// <param name="info"></param>
+		void create_uv_sphere(scene& scene, const primitive_init_info& info) {
+			lod_group lod{};
+			lod.name = "uv_sphere";
+			lod.meshes.emplace_back(create_uv_sphere(info));
+			scene.lod_groups.emplace_back(lod);
 		}
 		void create_ico_sphere(scene& scene, const primitive_init_info& info) {
 
@@ -150,7 +312,7 @@ namespace primal::tools {
 	/// <param name="data">场景数据指针</param>
 	/// <param name="info">The information.</param>
 	EDITOR_INTERFACE
-	void CreatePrimitiveMesh(scene_data* data, primitive_init_info* info) {
+		void CreatePrimitiveMesh(scene_data* data, primitive_init_info* info) {
 		assert(data && info);
 		assert(info->type < primitive_mesh_type::count);
 		scene scene{};

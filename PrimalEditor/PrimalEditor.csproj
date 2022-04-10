@@ -31,11 +31,9 @@
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebugEditor|x64'">
 		<DebugSymbols>true</DebugSymbols>
-		<OutputPath>..\x64\DebugEditor\</OutputPath>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'ReleaseEditor|x64'">
-		<OutputPath>..\x64\ReleaseEditor\</OutputPath>
 		<Optimize>true</Optimize>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
@@ -43,7 +41,7 @@
 		<ApplicationIcon>primal.ico</ApplicationIcon>
 		<PlatformTarget>x64</PlatformTarget>
 		<BaseOutputPath>D:\Code\CC\Primal\</BaseOutputPath>
-		<BaseIntermediateOutputPath>D:\Code\CC\Primal\PrimalEditor\obj\</BaseIntermediateOutputPath>
+		<BaseIntermediateOutputPath>D:\Code\CC\Primal\PrimalEditor\obj\inter\</BaseIntermediateOutputPath>
 		<StartupObject>PrimalEditor.App</StartupObject>
 		<DebugType>full</DebugType>
 	</PropertyGroup>
@@ -160,11 +158,9 @@
 	  <None Include="ProjectTemplates\TopToDownProject\screenshot.png" />
 	  <None Include="ProjectTemplates\TopToDownProject\template.xml" />
 	  <None Include="Properties\Settings.settings" />
-	  <Resource Include="Resources\PrimitiveMeshView\A.png" />
 	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.png" />
-	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.jpg">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	  </Resource>
+	  <Resource Include="Resources\PrimitiveMeshView\UvTexture.png" />
+	  <Resource Include="Resources\PrimitiveMeshView\A.png" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
