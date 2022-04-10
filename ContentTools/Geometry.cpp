@@ -10,7 +10,7 @@ namespace primal::tools {
 		/// <param name="m">The m.</param>
 		void recalculate_normals(mesh& m) {
 			const u32 num_indices{ (u32)m.raw_indices.size() };//三角形所有顶点数量和
-			m.normals.reserve(num_indices); // 重置发现数组的大小以匹配raw_indices数量[每个三角形三个顶点都存成一个法线(三角形共顶点也要算两次的)]
+			m.normals.resize(num_indices); // 重置发现数组的大小以匹配raw_indices数量[每个三角形三个顶点都存成一个法线(三角形共顶点也要算两次的)]
 
 			for (u32 i{ 0 }; i < num_indices; ++i) {
 				// 拿到三角形的三个顶点的序号
@@ -53,7 +53,6 @@ namespace primal::tools {
 			const u32 num_indices{ (u32)m.raw_indices.size() }; // 三角形所有顶点对应序号
 			const u32 num_vertices{ (u32)m.positions.size() };	// 顶点数量
 			assert(num_indices && num_vertices);
-			assert(num_indices == num_vertices * 3);
 
 			m.indices.resize(num_indices);
 			utl::vector<utl::vector<u32>> idx_ref(num_vertices); //为每个顶点都创建一个引用数组
@@ -116,7 +115,7 @@ namespace primal::tools {
 			for (u32 i{ 0 }; i < num_indices; ++i) {
 				idx_ref[old_indices[i]].emplace_back(i);
 			}
-			for (u32 i{ 0 }; i < num_indices; ++i) {
+			for (u32 i{ 0 }; i < num_vertices; ++i) {
 				auto& refs{ idx_ref[i] };	// &数组 每个顶点对应的raw_indice序号
 				u32 num_refs{ (u32)refs.size() };
 				for (u32 j{ 0 }; j < num_refs; ++j) {

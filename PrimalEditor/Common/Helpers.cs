@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Media;
 
@@ -45,7 +41,7 @@ namespace PrimalEditor
             if (length <= 0) length = 8;
             var n = length / 11;
             var sb = new StringBuilder(n);
-            for (int i = 0; i < n; i++)
+            for (int i = 0; i <= n; i++)
             {
                 sb.Append(Path.GetRandomFileName().Replace(".", "")); //因为GetRandomFileName()返回的字符串去掉小数点是11位的
             }
