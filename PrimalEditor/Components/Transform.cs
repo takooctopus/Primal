@@ -1,12 +1,8 @@
 ﻿using PrimalEditor.Utilities;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.Components
 {
@@ -26,7 +22,7 @@ namespace PrimalEditor.Components
             get => _position;
             set
             {
-                if(_position != value)
+                if (_position != value)
                 {
                     _position = value;
                     OnPropertyChanged(nameof(Position));
@@ -44,7 +40,7 @@ namespace PrimalEditor.Components
             get => _rotation;
             set
             {
-                if(_rotation != value)
+                if (_rotation != value)
                 {
                     _rotation = value;
                     OnPropertyChanged(nameof(Rotation));
@@ -62,7 +58,7 @@ namespace PrimalEditor.Components
             get => _scale;
             set
             {
-                if(_scale != value)
+                if (_scale != value)
                 {
                     _scale = value;
                     OnPropertyChanged(nameof(Scale));
@@ -287,5 +283,7 @@ namespace PrimalEditor.Components
         {
             Refresh();
         }
+
+        public MSTransform() : base() { }
     }
 }

@@ -7,9 +7,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Input;
 
 namespace PrimalEditor.Components
 {
@@ -386,7 +383,7 @@ namespace PrimalEditor.Components
         /// Initializes a new instance of the <see cref="MSEntity"/> class.
         /// MSEntity 无参构造函数，为了暂时解决注入时预览问题
         /// </summary>
-        public MSEntity() {}
+        public MSEntity() { }
     }
 
     /// <summary>

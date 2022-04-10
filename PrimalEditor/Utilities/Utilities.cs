@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Threading;
 
 namespace PrimalEditor.Utilities
@@ -45,7 +41,7 @@ namespace PrimalEditor.Utilities
         /// </returns>
         public static bool IsTheSameAs(this float? value, float? other)
         {
-            if(!value.HasValue || !other.HasValue) return false;
+            if (!value.HasValue || !other.HasValue) return false;
             return Math.Abs(value.Value - other.Value) < Epsilon;
         }
     }
@@ -66,7 +62,7 @@ namespace PrimalEditor.Utilities
         private DateTime _lastEventTime = DateTime.Now;
         private object _data;
 
-        public event EventHandler<DelayEventTimerArgs> Triggered; 
+        public event EventHandler<DelayEventTimerArgs> Triggered;
 
         public void Trigger(object data = null)
         {

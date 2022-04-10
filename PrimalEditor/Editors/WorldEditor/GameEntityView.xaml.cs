@@ -5,18 +5,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PrimalEditor.Editors
 {
@@ -182,7 +175,7 @@ namespace PrimalEditor.Editors
             var creationFunction = ComponentFactory.GetCreationFunction(componentType);
             var changedEntities = new List<(GameEntity entity, Component component)>();
             var vm = DataContext as MSEntity;
-            foreach( var entity in vm.SelectedEntities)
+            foreach (var entity in vm.SelectedEntities)
             {
                 // 对选中的游戏实体进行遍历，将我们
                 // 注意在我们的模型中 一个游戏实体每种类型的组件component最多只有一个，要是已经有了就会跳过【弹一条警告】
@@ -222,7 +215,7 @@ namespace PrimalEditor.Editors
         /// <param name="e">The <see cref="RoutedEventArgs"/> instance containing the event data.</param>
         private void OnAddScriptComponent(object sender, RoutedEventArgs e)
         {
-            AddComponent(ComponentType.Script, (sender as MenuItem).Header.ToString() );
+            AddComponent(ComponentType.Script, (sender as MenuItem).Header.ToString());
         }
     }
 }

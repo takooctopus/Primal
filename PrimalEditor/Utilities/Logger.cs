@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 
 namespace PrimalEditor.Utilities
-{   
+{
     enum MessageType
     {
         Info = 0x01,
@@ -22,10 +18,10 @@ namespace PrimalEditor.Utilities
     {
         public DateTime Time { get; }
         public MessageType MessageType { get; }
-        public string Message { get;}
-        public string File { get;}
-        public string Caller { get;}
-        public int Line { get;}
+        public string Message { get; }
+        public string File { get; }
+        public string Caller { get; }
+        public int Line { get; }
         public string MetaData => $"{File}: {Caller} ({Line})";
 
         public LogMessage(MessageType type, string msg, string file, string caller, int line)
@@ -40,7 +36,7 @@ namespace PrimalEditor.Utilities
     }
     static class Logger
     {
-        private static int _messageFilter = (int)( MessageType.Info | MessageType.Warning | MessageType.Error);
+        private static int _messageFilter = (int)(MessageType.Info | MessageType.Warning | MessageType.Error);
         private readonly static ObservableCollection<LogMessage> _messages = new ObservableCollection<LogMessage>();
         public static ReadOnlyObservableCollection<LogMessage> Messages { get; } = new ReadOnlyObservableCollection<LogMessage>(_messages);
         public static CollectionViewSource FilteredMessages { get; } = new CollectionViewSource() { Source = Messages };

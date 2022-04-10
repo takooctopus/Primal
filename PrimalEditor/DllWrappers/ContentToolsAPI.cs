@@ -1,26 +1,21 @@
 ﻿using PrimalEditor.ContentToolsAPIStruct;
 using PrimalEditor.Utilities;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 
 namespace PrimalEditor.ContentToolsAPIStruct
 {
     [StructLayout(LayoutKind.Sequential)]
     class GeometryImportSettings
     {
-        public float SmoothingAngle     =   178f; // 平滑角度
-        public byte CalculateNormals    =   0;   // 计算法线?(bool)
-        public byte CalculateTangents   =   1;  //计算切线?(bool)
-        public byte ReverseHandedness   =   0;  // 左右手互换？(bool)
-        public byte ImportEmbededTextures   = 1; // 导入嵌入纹理?(bool)
-        public byte ImportAnimations    =   1;	// 导入动画?(bool)
+        public float SmoothingAngle = 178f; // 平滑角度
+        public byte CalculateNormals = 0;   // 计算法线?(bool)
+        public byte CalculateTangents = 1;  //计算切线?(bool)
+        public byte ReverseHandedness = 0;  // 左右手互换？(bool)
+        public byte ImportEmbededTextures = 1; // 导入嵌入纹理?(bool)
+        public byte ImportAnimations = 1;	// 导入动画?(bool)
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -69,7 +64,7 @@ namespace PrimalEditor.DllWrappers
         private const string _contentToolsDll = "ContentTools.dll";
 
         [DllImport(_contentToolsDll)]
-        private static extern void CreatePrimitiveMesh([In, Out]SceneData data, PrimitiveInitInfo info);
+        private static extern void CreatePrimitiveMesh([In, Out] SceneData data, PrimitiveInitInfo info);
         public static void CreatePrimitiveMesh(Content.Geometry geometry, PrimitiveInitInfo info)
         {
             Debug.Assert(geometry != null);

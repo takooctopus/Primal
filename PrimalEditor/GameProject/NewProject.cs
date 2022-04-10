@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -36,13 +35,13 @@ namespace PrimalEditor.GameProject
         // TODO: get the path from the installation location
         private readonly string _templatePath = @"..\..\PrimalEditor\ProjectTemplates";
         private string _projectName = "NewProject";
-        private string _projectPath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}\PrimalProjects\" ;
+        private string _projectPath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}\PrimalProjects\";
         public string ProjectName
         {
             get => _projectName;
             set
             {
-                if(_projectName != value)
+                if (_projectName != value)
                 {
                     _projectName = value;
                     ValidateProjectPath();
@@ -55,7 +54,7 @@ namespace PrimalEditor.GameProject
             get => _projectPath;
             set
             {
-                if(_projectPath != value)
+                if (_projectPath != value)
                 {
                     _projectPath = value;
                     ValidateProjectPath();
@@ -86,7 +85,7 @@ namespace PrimalEditor.GameProject
             get => _errorMsg;
             set
             {
-                if(_errorMsg != value)
+                if (_errorMsg != value)
                 {
                     _errorMsg = value;
                     OnPropertyChanged(nameof(ErrorMsg));
@@ -128,7 +127,7 @@ namespace PrimalEditor.GameProject
                 ErrorMsg = string.Empty;
                 IsValid = true;
             }
-            return IsValid; 
+            return IsValid;
         }
 
         public string CreateProject(ProjectTemplate template)
@@ -150,7 +149,7 @@ namespace PrimalEditor.GameProject
                 if (!Directory.Exists(path))
                 {
                     Directory.CreateDirectory(path);
-                    foreach(var folder in template.Folders)
+                    foreach (var folder in template.Folders)
                     {
                         Directory.CreateDirectory(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), folder)));
                     }
@@ -216,21 +215,21 @@ namespace PrimalEditor.GameProject
             {
                 var templatesFiles = Directory.GetFiles(_templatePath, "template.xml", SearchOption.AllDirectories);
                 Debug.Assert(templatesFiles.Length > 0);
-                foreach(var file in templatesFiles)
+                foreach (var file in templatesFiles)
                 {
-                    var template =  Serializer.FromFile<ProjectTemplate>(file);
-                    template.IconFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"icon.png"));
+                    var template = Serializer.FromFile<ProjectTemplate>(file);
+                    template.IconFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file), "icon.png"));
                     template.Icon = File.ReadAllBytes(template.IconFilePath);
-                    template.ScreenshotFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),"screenshot.png"));
+                    template.ScreenshotFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file), "screenshot.png"));
                     template.Screenshot = File.ReadAllBytes(template.ScreenshotFilePath);
                     template.TemplatePath = Path.GetDirectoryName(file);
-                    template.ProjectFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file),template.ProjectFile));
+                    template.ProjectFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file), template.ProjectFile));
                     _projectTemplates.Add(template);
                 }
                 ValidateProjectPath();
             }
             catch (Exception ex)
-            {   
+            {
                 Debug.WriteLine(ex.Message);
                 Logger.Log(MessageType.Error, $"Failed to read project templates");
                 throw;

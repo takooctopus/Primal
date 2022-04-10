@@ -1,13 +1,8 @@
 ﻿using PrimalEditor.Components;
 using PrimalEditor.Utilities;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace PrimalEditor.GameProject
@@ -18,16 +13,16 @@ namespace PrimalEditor.GameProject
         private string _name;
         [DataMember]
         public string Name
-        { 
-            get => _name; 
+        {
+            get => _name;
             set
             {
-                if(_name != value)
+                if (_name != value)
                 {
                     _name = value;
                     OnPropertyChanged(nameof(Name));
                 }
-            } 
+            }
         }
         [DataMember]
         public Project Project { get; private set; }
@@ -49,14 +44,14 @@ namespace PrimalEditor.GameProject
         [DataMember(Name = nameof(GameEntities))]
         private ObservableCollection<GameEntity> _gameEntities = new ObservableCollection<GameEntity>();
         public ReadOnlyObservableCollection<GameEntity> GameEntities { get; private set; }
-        
+
         public ICommand AddGameEntityCommand { get; private set; }
         public ICommand RemoveGameEntityCommand { get; private set; }
         private void AddGameEntity(GameEntity entity, int index = -1)
         {
             Debug.Assert(!_gameEntities.Contains(entity));
             entity.IsActive = IsActive;
-            if(index == -1)
+            if (index == -1)
             {
                 // 默认表示其是一个新的实体，最好把其加进scene的_gameEntities这个列表中
                 _gameEntities.Add(entity);
@@ -117,7 +112,7 @@ namespace PrimalEditor.GameProject
             });
 
         }
-        public Scene (Project project, string name)
+        public Scene(Project project, string name)
         {
             Debug.Assert(project != null);
             Project = project;

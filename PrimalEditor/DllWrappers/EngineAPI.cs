@@ -3,12 +3,9 @@ using PrimalEditor.EngineAPIStructs;
 using PrimalEditor.GameProject;
 using PrimalEditor.Utilities;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace PrimalEditor.EngineAPIStructs
@@ -80,7 +77,7 @@ namespace PrimalEditor.DllWrappers
         public static extern void ResizeRenderSurface(int surfaceId);
 
         [DllImport(_engineDll)]
-        public static extern IntPtr GetWindowHandle(int surfaceId); 
+        public static extern IntPtr GetWindowHandle(int surfaceId);
 
         internal static class EntityAPI
         {
@@ -113,7 +110,7 @@ namespace PrimalEditor.DllWrappers
                     // 获取游戏实体对象拥有的脚本对象，我们其实只需要传入对象的名称就好
                     var c = entity.GetComponent<Script>();
                     // 这里我们要判断当前项目是否为null， 如果为null则 GameCode DLL还未被载入，这个时候脚本组件的创建将会被推迟【但我们仍旧可以建立一个游戏实体(没有脚本属性)】
-                    if( c != null && Project.Current != null)
+                    if (c != null && Project.Current != null)
                     {
                         if (Project.Current.AvailableScripts.Contains(c.Name))
                         {

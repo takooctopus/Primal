@@ -6,8 +6,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.GameProject
 {
@@ -98,11 +96,11 @@ namespace PrimalEditor.GameProject
 
         private static void ReadProjectData()
         {
-            if(File.Exists(_projectDataPath))
+            if (File.Exists(_projectDataPath))
             {
                 var projects = Serializer.FromFile<ProjectDataList>(_projectDataPath).Projects.OrderByDescending(x => x.Date);
                 _projects.Clear();
-                foreach(var project in projects)
+                foreach (var project in projects)
                 {
                     if (File.Exists(project.FullPath))
                     {
@@ -120,7 +118,7 @@ namespace PrimalEditor.GameProject
         {
             // TOERROR: 创建项目时这个地方直接卡死了，搞什么啊
             var projects = _projects.OrderBy(x => x.Date).ToList();
-            Serializer.ToFile(new ProjectDataList() { Projects = projects}, _projectDataPath);
+            Serializer.ToFile(new ProjectDataList() { Projects = projects }, _projectDataPath);
         }
 
         /// <summary>
