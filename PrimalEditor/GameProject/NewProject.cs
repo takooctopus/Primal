@@ -33,7 +33,8 @@ namespace PrimalEditor.GameProject
     class NewProject : ViewModelBase
     {
         // TODO: get the path from the installation location
-        private readonly string _templatePath = @"..\..\PrimalEditor\ProjectTemplates";
+        //private readonly string _templatePath = @"..\..\PrimalEditor\ProjectTemplates\";
+        private readonly string _templatePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"ProjectTemplates\");
         private string _projectName = "NewProject";
         private string _projectPath = $@"{Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)}\PrimalProjects\";
         public string ProjectName

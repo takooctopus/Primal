@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:PrimalEditor.Editors"
              xmlns:vm ="clr-namespace:PrimalEditor.Components"
              mc:Ignorable="d" Background="{StaticResource Editor.Window.GrayBrush3}"
-             d:DataContext="{d:DesignInstance Type=vm:MSGameEntity , IsDesignTimeCreatable=True}"
+             d:DataContext="{d:DesignInstance Type=vm:MSGameEntity , IsDesignTimeCreatable=False}"
              d:DesignHeight="450" d:DesignWidth="800">
     <UserControl.Resources>
         <local:NullableBoolToBoolConverter x:Key="nullableBoolToBoolConverter"/>

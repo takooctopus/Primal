@@ -160,7 +160,7 @@ namespace primal::tools {
 			}
 
 			// 底部顶点
-			m.positions[c++] = { 0.f, -info.size.z, 0.f };
+			m.positions[c++] = { 0.f, -info.size.y, 0.f };
 			assert(c == num_vertices);
 
 			//重置序号，并分配空间

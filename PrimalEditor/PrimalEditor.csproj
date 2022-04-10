@@ -139,24 +139,60 @@
 		<Resource Include="primal.ico" />
 	</ItemGroup>
 	<ItemGroup>
-	  <None Include="ProjectTemplates\EmptyProject\icon.png" />
-	  <None Include="ProjectTemplates\EmptyProject\MSVCProject" />
-	  <None Include="ProjectTemplates\EmptyProject\MSVCSolution" />
-	  <None Include="ProjectTemplates\EmptyProject\project.primal" />
-	  <None Include="ProjectTemplates\EmptyProject\screenshot.png" />
-	  <None Include="ProjectTemplates\EmptyProject\template.xml" />
-	  <None Include="ProjectTemplates\FirstPersonProject\icon.png" />
-	  <None Include="ProjectTemplates\FirstPersonProject\project.primal" />
-	  <None Include="ProjectTemplates\FirstPersonProject\screenshot.png" />
-	  <None Include="ProjectTemplates\FirstPersonProject\template.xml" />
-	  <None Include="ProjectTemplates\ThirdPersonProject\icon.png" />
-	  <None Include="ProjectTemplates\ThirdPersonProject\project.primal" />
-	  <None Include="ProjectTemplates\ThirdPersonProject\screenshot.png" />
-	  <None Include="ProjectTemplates\ThirdPersonProject\template.xml" />
-	  <None Include="ProjectTemplates\TopToDownProject\icon.png" />
-	  <None Include="ProjectTemplates\TopToDownProject\project.primal" />
-	  <None Include="ProjectTemplates\TopToDownProject\screenshot.png" />
-	  <None Include="ProjectTemplates\TopToDownProject\template.xml" />
+	  <None Include="ProjectTemplates\EmptyProject\icon.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\EmptyProject\MSVCProject">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\EmptyProject\MSVCSolution">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\EmptyProject\project.primal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\EmptyProject\screenshot.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\EmptyProject\template.xml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\FirstPersonProject\icon.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\FirstPersonProject\project.primal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\FirstPersonProject\screenshot.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\FirstPersonProject\template.xml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\ThirdPersonProject\icon.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\ThirdPersonProject\project.primal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\ThirdPersonProject\screenshot.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\ThirdPersonProject\template.xml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\TopToDownProject\icon.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\TopToDownProject\project.primal">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\TopToDownProject\screenshot.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
+	  <None Include="ProjectTemplates\TopToDownProject\template.xml">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	  </None>
 	  <None Include="Properties\Settings.settings" />
 	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.png" />
 	  <Resource Include="Resources\PrimitiveMeshView\UvTexture.png" />
