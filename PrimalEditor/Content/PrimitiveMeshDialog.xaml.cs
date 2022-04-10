@@ -1,9 +1,12 @@
-﻿using PrimalEditor.ContentToolsAPIStruct;
+﻿using Microsoft.Win32;
+using PrimalEditor.ContentToolsAPIStruct;
 using PrimalEditor.DllWrappers;
 using PrimalEditor.Editors;
+using PrimalEditor.GameProject;
 using PrimalEditor.Utilities.Controls;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -83,7 +86,7 @@ namespace PrimalEditor.Content
         {
             var uris = new List<Uri>
             {
-                new Uri("pack://application:,,,/Resources/PrimitiveMeshView/PlaneTexture.png"),
+                new Uri("pack://application:,,,/Resources/PrimitiveMeshView/PlaneTexture.jpg"),
                 new Uri("pack://application:,,,/Resources/PrimitiveMeshView/A.png"),
                 new Uri("pack://application:,,,/Resources/PrimitiveMeshView/UvTexture.png"),
             };
@@ -127,6 +130,22 @@ namespace PrimalEditor.Content
             foreach (var mesh in vm.MeshRenderer.Meshes)
             {
                 mesh.Diffuse = brush;
+            }
+        }
+
+        private void OnSave_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new SaveFileDialog()
+            {
+                InitialDirectory =  Project.Current.ContentPath,
+                Filter = "Asset file (*.asset) | *.asset"
+            };
+            if(dlg.ShowDialog() == true)
+            {
+                Debug.Assert(!string.IsNullOrEmpty(dlg.FileName));
+                var asset = (DataContext as IAssetEditor).Asset;
+                Debug.Assert(asset != null);
+                asset.Save(dlg.FileName);
             }
         }
     }

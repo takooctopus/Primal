@@ -52,6 +52,8 @@ namespace PrimalEditor.GameProject
         /// </summary>
         public string Solution => $@"{Path}{Name}.sln";
 
+        public string ContentPath => $@"{Path}Content\";
+
         /// <summary>
         /// 项目的参数
         /// </summary>

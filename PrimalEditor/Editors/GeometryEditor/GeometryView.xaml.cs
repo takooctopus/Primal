@@ -4,6 +4,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 
 namespace PrimalEditor.Editors
@@ -13,6 +15,8 @@ namespace PrimalEditor.Editors
     /// </summary>
     public partial class GeometryView : UserControl
     {
+        private static readonly GeometryView _geometryView = new GeometryView() { Background = (Brush)Application.Current.FindResource("Editor.Window.GrayBrush4")};
+
         private Point _clickedPosition;
         private bool _captureLeft;
         private bool _captureRight;
@@ -58,11 +62,6 @@ namespace PrimalEditor.Editors
             }
             var visual = new ModelVisual3D() { Content = modelGroup };
             viewport.Children.Add(visual);
-        }
-        public GeometryView()
-        {
-            InitializeComponent();
-            DataContextChanged += (s, e) => SetGeometry();
         }
 
         private void OnGrid_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
@@ -148,5 +147,31 @@ namespace PrimalEditor.Editors
             vm.CameraPosition = new Point3D(v.X, v.Y, v.Z);
         }
 
+        /// <summary>
+        /// 将这个view渲染成一张Icon【bitmap】
+        /// </summary>
+        /// <param name="meshRenderer"></param>
+        /// <param name="width"></param>
+        /// <param name="height"></param>
+        /// <returns></returns>
+        internal static BitmapSource RenderToBitmap(MeshRenderer meshRenderer, int width, int height)
+        {
+            var bmp = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Default);
+            _geometryView.DataContext = meshRenderer;
+            _geometryView.Width = width;
+            _geometryView.Height = height;
+            _geometryView.Measure(new Size(width, height));
+            _geometryView.Arrange(new Rect(0, 0, width, height));
+            _geometryView.UpdateLayout();
+
+            bmp.Render(_geometryView);
+            return bmp;
+        }
+        
+        public GeometryView()
+        {
+            InitializeComponent();
+            DataContextChanged += (s, e) => SetGeometry();
+        }
     }
 }

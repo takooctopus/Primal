@@ -194,7 +194,7 @@
 	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 	  </None>
 	  <None Include="Properties\Settings.settings" />
-	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.png" />
+	  <Resource Include="Resources\PrimitiveMeshView\PlaneTexture.jpg" />
 	  <Resource Include="Resources\PrimitiveMeshView\UvTexture.png" />
 	  <Resource Include="Resources\PrimitiveMeshView\A.png" />
 	</ItemGroup>

@@ -1,10 +1,14 @@
 ﻿using PrimalEditor.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace PrimalEditor.Content
 {
@@ -141,25 +145,6 @@ namespace PrimalEditor.Content
     /// </summary>
     class GeometryImportSettings : ViewModelBase
     {
-        //public float SmoothingAngle = 178f; // 平滑角度
-        //public byte CalculateNormals = 0;   // 计算法线?(bool)
-        //public byte CalculateTangents = 1;  //计算切线?(bool)
-        //public byte ReverseHandedness = 0;  // 左右手互换？(bool)
-        //public byte ImportEmbededTextures = 1; // 导入嵌入纹理?(bool)
-        //public byte ImportAnimations = 1;	// 导入动画?(bool)
-        private float _smoothingAngle;
-        public float SmoothingAngle
-        {
-            get => _smoothingAngle;
-            set
-            {
-                if (_smoothingAngle != value)
-                {
-                    _smoothingAngle = value;
-                    OnPropertyChanged(nameof(SmoothingAngle));
-                }
-            }
-        }
 
         private bool _calculateNormals;
         public bool CalculateNormals
@@ -181,10 +166,29 @@ namespace PrimalEditor.Content
             get => _calculateTangents;
             set
             {
-                if(_calculateTangents != value)
+                if (_calculateTangents != value)
                 {
                     _calculateTangents = value;
                     OnPropertyChanged(nameof(CalculateTangents));
+                }
+            }
+        }
+        //public float SmoothingAngle = 178f; // 平滑角度
+        //public byte CalculateNormals = 0;   // 计算法线?(bool)
+        //public byte CalculateTangents = 1;  //计算切线?(bool)
+        //public byte ReverseHandedness = 0;  // 左右手互换？(bool)
+        //public byte ImportEmbededTextures = 1; // 导入嵌入纹理?(bool)
+        //public byte ImportAnimations = 1;	// 导入动画?(bool)
+        private float _smoothingAngle;
+        public float SmoothingAngle
+        {
+            get => _smoothingAngle;
+            set
+            {
+                if (_smoothingAngle != value)
+                {
+                    _smoothingAngle = value;
+                    OnPropertyChanged(nameof(SmoothingAngle));
                 }
             }
         }
@@ -195,7 +199,7 @@ namespace PrimalEditor.Content
             get => _reverseHandedness;
             set
             {
-                if(_reverseHandedness != value)
+                if (_reverseHandedness != value)
                 {
                     _reverseHandedness = value;
                     OnPropertyChanged(nameof(ReverseHandedness));
@@ -230,6 +234,19 @@ namespace PrimalEditor.Content
             }
         }
 
+        /// <summary>
+        /// 根据选中的BinaryWriter二进制化
+        /// </summary>
+        /// <param name="writer"></param>
+        internal void ToBinary(BinaryWriter writer)
+        {
+            writer.Write(CalculateNormals);
+            writer.Write(CalculateTangents);
+            writer.Write(SmoothingAngle);
+            writer.Write(ReverseHandedness);
+            writer.Write(ImportEmbeddedTextures);
+            writer.Write(ImportAnimations);
+        }
         public GeometryImportSettings()
         {
             CalculateNormals = false;
@@ -352,6 +369,111 @@ namespace PrimalEditor.Content
                 lodList.Add(lod);
             }
             lod.Meshes.Add(mesh);
+        }
+
+        public override IEnumerable<string> Save(string file)
+        {
+            Debug.Assert(_lodGroups.Any());
+            var savedFiles = new List<string>();
+            if (!_lodGroups.Any()) return savedFiles;
+
+            var path = Path.GetDirectoryName(file) + Path.DirectorySeparatorChar;
+            var fileName = Path.GetFileNameWithoutExtension(file);
+
+            try
+            {
+                foreach (var lodGroup in _lodGroups)
+                {
+                    Debug.Assert(lodGroup.LODs.Any());
+
+                    var meshFileName = ContentHelper.SanitizeFileName(path + fileName + "_" + lodGroup.LODs[0].Name + AssetFileExtension);
+                    Guid = Guid.NewGuid();
+                    byte[] data = null;
+                    using (var writer = new BinaryWriter(new MemoryStream()))
+                    {
+                        writer.Write(lodGroup.Name);
+                        writer.Write(lodGroup.LODs.Count);
+                        var hashes = new List<byte>();
+                        foreach (var lod in lodGroup.LODs)
+                        {
+                            LODToBinary(lod, writer, out var hash);
+                            hashes.AddRange(hash);
+                        }
+                        Hash = ContentHelper.ComputeHash(hashes.ToArray());
+                        data = (writer.BaseStream as MemoryStream).ToArray();
+                        Icon = GenerateIcon(lodGroup.LODs[0]);
+                    }
+
+                    Debug.Assert(data?.Length > 0);
+
+                    using (var writer = new BinaryWriter(File.Open(meshFileName, FileMode.Create, FileAccess.Write)))
+                    {
+                        WriteAssetFileHeader(writer);
+                        ImportSettings.ToBinary(writer);
+                        writer.Write(data.Length);
+                        writer.Write(data);
+                    }
+
+                    savedFiles.Add(meshFileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+                Logger.Log(MessageType.Error, $"Failed to save geometry to {file}");
+            }
+
+            return savedFiles;
+        }
+
+        /// <summary>
+        /// 将lod渲染成一张Icon
+        /// </summary>
+        /// <param name="lod"></param>
+        /// <returns></returns>
+        private byte[] GenerateIcon(MeshLOD lod)
+        {
+            var width = 90 * 4;
+
+            BitmapSource bmp = null;
+
+            //用dispatcher放到后台线程去做 
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                bmp = Editors.GeometryView.RenderToBitmap(new Editors.MeshRenderer(lod, null), width, width);
+                bmp = new TransformedBitmap(bmp, new ScaleTransform(0.25, 0.25, 0.5, 0.5));
+            });
+
+            using var memStream = new MemoryStream();
+            memStream.SetLength(0);
+
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(bmp));
+            encoder.Save(memStream);
+            return memStream.ToArray();
+        }
+
+        private void LODToBinary(MeshLOD lod, BinaryWriter writer, out byte[] hash)
+        {
+            writer.Write(lod.Name);
+            writer.Write(lod.LodThreshold);
+            writer.Write(lod.Meshes.Count);
+
+            var meshDataBegin = writer.BaseStream.Position;
+
+            foreach (var mesh in lod.Meshes)
+            {
+                writer.Write(mesh.VertexSize);
+                writer.Write(mesh.VertexCount);
+                writer.Write(mesh.IndexSize);
+                writer.Write(mesh.IndexCount);
+                writer.Write(mesh.Vertices);
+                writer.Write(mesh.Indices);
+            }
+            var meshDataSize = writer.BaseStream.Position - meshDataBegin;
+            Debug.Assert(meshDataSize > 0);
+            var buffer = (writer.BaseStream as MemoryStream).ToArray();
+            hash = ContentHelper.ComputeHash(buffer, (int)meshDataBegin, (int)meshDataSize);
         }
 
         public Geometry() : base(AssetType.Mesh)

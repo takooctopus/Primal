@@ -157,7 +157,7 @@
                     </Border>
                     <Label Content="Smoothing angle" VerticalAlignment="Top" HorizontalAlignment="Left"  Padding="5,0" Foreground="{StaticResource Editor.FontBrush}"/>
                 </Grid>
-                <Button Content="Save" Width="96" Margin="5,0"/>
+                <Button Content="Save" Width="96" Margin="5,0" Click="OnSave_Button_Click"/>
             </StackPanel>
 
 
