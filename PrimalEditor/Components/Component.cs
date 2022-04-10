@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.Components
 {
     /// <summary>
     /// 多选组件抽象接口，后面的多选组件类应该继承此类
     /// </summary>
-    interface IMSComponent {}
+    interface IMSComponent { }
 
     [DataContract]
     abstract class Component : ViewModelBase
@@ -53,7 +50,7 @@ namespace PrimalEditor.Components
         /// <summary>
         /// 已选择的所有组件列表
         /// </summary>
-        public List<T> SelectedComponents { get;}
+        public List<T> SelectedComponents { get; }
 
         /// <summary>
         /// 用来更新组件里的属性的，传入参数比方说是transform的scale属性
@@ -61,7 +58,7 @@ namespace PrimalEditor.Components
         /// <param name="propertyName"></param>
         /// <returns></returns>
         protected abstract bool UpdateComponents(string propertyName);
-        
+
         /// <summary>
         /// 获取更新多选组件状态
         /// </summary>
@@ -75,7 +72,7 @@ namespace PrimalEditor.Components
         {
             _enableUpdates = false;
             UpdateMSComponent();
-            _enableUpdates = true; 
+            _enableUpdates = true;
         }
         public MSComponent(MSEntity mSEntity)
         {
@@ -87,5 +84,6 @@ namespace PrimalEditor.Components
                 if (_enableUpdates) UpdateComponents(e.PropertyName);
             };
         }
+        public MSComponent() { }
     }
 }

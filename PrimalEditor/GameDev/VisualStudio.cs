@@ -1,14 +1,11 @@
 ﻿using PrimalEditor.GameProject;
 using PrimalEditor.Utilities;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.GameDev
 {
@@ -316,7 +313,7 @@ namespace PrimalEditor.GameDev
 
         public static void Stop()
         {
-            if(_vsInstance != null && IsDebugging())
+            if (_vsInstance != null && IsDebugging())
             {
                 _vsInstance.ExecuteCommand("Debug.StopDebugging");
             }

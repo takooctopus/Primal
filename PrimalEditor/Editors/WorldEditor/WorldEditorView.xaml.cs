@@ -1,20 +1,7 @@
-﻿using PrimalEditor.GameDev;
-using PrimalEditor.GameProject;
-using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using PrimalEditor.Content;
+using PrimalEditor.GameDev;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace PrimalEditor.Editors
 {
@@ -33,7 +20,7 @@ namespace PrimalEditor.Editors
         {
             Loaded -= OnWorldEditorViewLoaded;
             Focus();
-            
+
             // TODO: 修改焦点逻辑,因为下面的修改会导致全局快捷键失效，这个留着以后再弄
             // TOREMOVE: 修复对MSentityList里面复数选中时的背景失效问题，你看下面这个函数就是当返回null时，会重新焦点主界面，就是这个bug
             //((INotifyCollectionChanged)Project.UndoRedo.UndoList).CollectionChanged += (s, e) => Focus();
@@ -47,6 +34,12 @@ namespace PrimalEditor.Editors
         private void OnNewScript_Button_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new NewScriptDialog();
+            dlg.ShowDialog();
+        }
+
+        private void OnCreatePrimitiveMesh_Button_Click(object sender, RoutedEventArgs e)
+        {
+            var dlg = new PrimitiveMeshDialog();
             dlg.ShowDialog();
         }
     }

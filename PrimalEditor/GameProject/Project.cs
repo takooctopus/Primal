@@ -3,13 +3,11 @@ using PrimalEditor.DllWrappers;
 using PrimalEditor.GameDev;
 using PrimalEditor.Utilities;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -303,11 +301,11 @@ namespace PrimalEditor.GameProject
             using (var bw = new BinaryWriter(File.Open(bin, FileMode.Create, FileAccess.Write)))
             {
                 bw.Write(ActiveScene.GameEntities.Count);
-                foreach(var entity in ActiveScene.GameEntities)
+                foreach (var entity in ActiveScene.GameEntities)
                 {
                     bw.Write(0); //实体类别 entity type TODO:
                     bw.Write(entity.Components.Count);
-                    foreach(var component in entity.Components)
+                    foreach (var component in entity.Components)
                     {
                         bw.Write((int)component.toEnumType());
                         component.WriteToBinary(bw);
@@ -423,6 +421,11 @@ namespace PrimalEditor.GameProject
             Name = name;
             Path = path;
             OnDeserialized(new StreamingContext());
+        }
+
+        public Project()
+        {
+            // 无参函数，不应该使用
         }
     }
 }

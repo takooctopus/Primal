@@ -1,12 +1,10 @@
 ﻿using PrimalEditor.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.Content
 {
@@ -220,7 +218,7 @@ namespace PrimalEditor.Content
             }
             var mesh = new Mesh();
 
-            var lodId = reader.ReadInt32(); 
+            var lodId = reader.ReadInt32();
             mesh.VertexSize = reader.ReadInt32();
             mesh.VertexCount = reader.ReadInt32();
             mesh.IndexSize = reader.ReadInt32();
@@ -228,8 +226,8 @@ namespace PrimalEditor.Content
             var lodThreshold = reader.ReadSingle();
 
             // vertex/indices data
-            var vertexBufferSize = mesh.VertexCount * mesh.VertexCount;
-            var indexBufferSize = mesh.IndexCount * mesh.IndexCount;
+            var vertexBufferSize = mesh.VertexSize * mesh.VertexCount;
+            var indexBufferSize = mesh.IndexSize * mesh.IndexCount;
 
             mesh.Vertices = reader.ReadBytes(vertexBufferSize);
             mesh.Indices = reader.ReadBytes(indexBufferSize);
@@ -244,13 +242,13 @@ namespace PrimalEditor.Content
             else
             {
                 lodIds.Add(lodId);
-                lod = new MeshLOD() { Name = meshName, LodThreshold = lodThreshold};
+                lod = new MeshLOD() { Name = meshName, LodThreshold = lodThreshold };
                 lodList.Add(lod);
             }
             lod.Meshes.Add(mesh);
         }
 
-        public Geometry(AssetType type) : base(type)
+        public Geometry() : base(AssetType.Mesh)
         {
 
         }

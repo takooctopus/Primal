@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -18,11 +13,11 @@ namespace PrimalEditor.Dictionaries
             var textBox = sender as TextBox;
             var exp = textBox.GetBindingExpression(TextBox.TextProperty);
             if (exp == null) return;
-            if(e.Key == Key.Enter) 
-            { 
-                if(textBox.Tag is ICommand command && command.CanExecute(textBox.Text))
+            if (e.Key == Key.Enter)
+            {
+                if (textBox.Tag is ICommand command && command.CanExecute(textBox.Text))
                 {
-                     command.Execute(textBox.Text);
+                    command.Execute(textBox.Text);
                 }
                 else
                 {
@@ -31,7 +26,7 @@ namespace PrimalEditor.Dictionaries
                 Keyboard.ClearFocus();
                 e.Handled = true;
             }
-            else if(e.Key == Key.Escape)
+            else if (e.Key == Key.Escape)
             {
                 exp.UpdateTarget();
                 Keyboard.ClearFocus();
@@ -66,10 +61,10 @@ namespace PrimalEditor.Dictionaries
         private void OnTextBoxRename_LostFocus(object sender, RoutedEventArgs e)
         {
             var textBox = sender as TextBox;
-            if(!textBox.IsVisible) return;
+            if (!textBox.IsVisible) return;
             var exp = textBox.GetBindingExpression(TextBox.TextProperty);
             // 一旦失去焦点，我们就将值设置成原来的值，并将焦点目标设置成之前的焦点目标控件
-            if(exp != null)
+            if (exp != null)
             {
                 exp.UpdateTarget();
                 //textBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Previous));

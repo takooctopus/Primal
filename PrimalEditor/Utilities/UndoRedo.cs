@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PrimalEditor.Utilities
 {
@@ -36,12 +33,12 @@ namespace PrimalEditor.Utilities
         }
         public UndoRedoAction(string property, object instance, object undoValue, object redoValue, string name)
             : this(
-                    () => instance.GetType().GetProperty(property).SetValue(instance,undoValue),
-                    () => instance.GetType().GetProperty(property).SetValue(instance,redoValue),
+                    () => instance.GetType().GetProperty(property).SetValue(instance, undoValue),
+                    () => instance.GetType().GetProperty(property).SetValue(instance, redoValue),
                     name
                   )
         {
-               
+
         }
     }
     /// <summary>
@@ -61,7 +58,7 @@ namespace PrimalEditor.Utilities
         }
         public void Add(IUndoRedo cmd)
         {
-            if(_enableAdd)
+            if (_enableAdd)
             {
                 _undoList.Add(cmd);
                 _redoList.Clear();

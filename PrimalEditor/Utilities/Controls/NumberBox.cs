@@ -1,16 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace PrimalEditor.Utilities.Controls
 {
-    [TemplatePart(Name = "PART_textBlock", Type=typeof(TextBlock))]
-    [TemplatePart(Name = "PART_textBox", Type=typeof(TextBox))]
+    [TemplatePart(Name = "PART_textBlock", Type = typeof(TextBlock))]
+    [TemplatePart(Name = "PART_textBox", Type = typeof(TextBox))]
     internal class NumberBox : Control
     {
         // 用来保存鼠标按下时的原始值
@@ -23,11 +19,27 @@ namespace PrimalEditor.Utilities.Controls
         private double _mouseXStart;
         // 倍率，设置同时按下ctrl或者shift来控制滑动的速率
         private double _multiplier;
-        public string Value {
-            get => (string)GetValue(ValueProperty);
-            set => SetValue(ValueProperty, value); 
+
+        public event RoutedEventHandler ValueChanged
+        {
+            add { AddHandler(ValueChangedEvent, value); }
+            remove { RemoveHandler(ValueChangedEvent, value); }
         }
-        public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(nameof(Value), typeof(string), typeof(NumberBox), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+        public static RoutedEvent ValueChangedEvent =
+            EventManager.RegisterRoutedEvent(nameof(ValueChanged), RoutingStrategy.Bubble,
+                typeof(RoutedEventHandler), typeof(NumberBox));
+
+        public string Value
+        {
+            get => (string)GetValue(ValueProperty);
+            set => SetValue(ValueProperty, value);
+        }
+        public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(nameof(Value), typeof(string), typeof(NumberBox), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, new PropertyChangedCallback(OnValueChanged)));
+
+        private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            (d as NumberBox).RaiseEvent(new RoutedEventArgs(ValueChangedEvent));
+        }
 
         public double Multiplier
         {
@@ -40,7 +52,7 @@ namespace PrimalEditor.Utilities.Controls
         {
             base.OnApplyTemplate();
             // 有textblock就绑定几个函数
-            if(GetTemplateChild("PART_textBlock") is TextBlock textBlock)
+            if (GetTemplateChild("PART_textBlock") is TextBlock textBlock)
             {
                 textBlock.MouseLeftButtonDown += OnTextBlock_Mouse_LBD;
                 textBlock.MouseLeftButtonUp += OnTextBlock_Mouse_LBU;
@@ -57,7 +69,7 @@ namespace PrimalEditor.Utilities.Controls
             e.Handled = true;
 
             // TODEBUG: 我TM就不明白这个GetPosition为什么返回来的X就是整数间隔的，就离谱。 明明Y那边都是好的，这边X就不是了!!!
-            _mouseXStart =  e.GetPosition(this).X;
+            _mouseXStart = e.GetPosition(this).X;
 
             Focus();
         }
@@ -84,13 +96,13 @@ namespace PrimalEditor.Utilities.Controls
                 var mouseX = e.GetPosition(this).X;
                 var d = mouseX - _mouseXStart;
                 // 只要两者间距大于最小的系统拖拽间距
-                if(Math.Abs(d) > SystemParameters.MinimumHorizontalDragDistance)
+                if (Math.Abs(d) > SystemParameters.MinimumHorizontalDragDistance)
                 {
                     if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control)) _multiplier = 0.001;
                     else if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) _multiplier = 0.1;
                     else _multiplier = 0.01;
                     var newValue = _originalValue + (d * _multiplier * Multiplier);
-                    Value = newValue.ToString("0.#####");
+                    Value = newValue.ToString("G5");
                     _valueChanged = true;
                 }
             }
