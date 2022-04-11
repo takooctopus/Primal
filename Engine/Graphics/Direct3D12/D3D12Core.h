@@ -8,6 +8,7 @@ namespace primal::graphics::d3d12::core {
 	[[nodiscard]]
 	bool initialize();
 	void shutdown();
+	void render();
 
 
 	/// <summary>

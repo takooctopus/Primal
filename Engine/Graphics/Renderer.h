@@ -36,4 +36,9 @@ namespace primal::graphics {
 	/// 退出图形平台函数
 	/// </summary>
 	void shutdown();
+
+	/// <summary>
+	/// 渲染场景
+	/// </summary>
+	void render();
 }

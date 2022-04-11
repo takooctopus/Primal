@@ -1,8 +1,11 @@
-#pragma once
+
 #include "TestRenderer.h"
 #include "..\Platform\PlatformTypes.h"
 #include "..\Platform\Platform.h"
 #include "..\Graphics\Renderer.h"
+
+#if TEST_RENDERER
+
 
 using namespace primal;
 
@@ -74,3 +77,6 @@ void engine_test::shutdown() {
 	}
 	graphics::shutdown();
 }
+
+
+#endif // TEST_RENDERER
