@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <typeinfo>
 #include <memory>
+#include <mutex>
 
 
 #if defined(_WIN64)

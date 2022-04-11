@@ -1,11 +1,13 @@
 #include "D3D12Core.h"
 #include "D3D12CommonHeaders.h"
+#include "D3D12Resources.h"
 
 using namespace Microsoft::WRL;
 
 namespace primal::graphics::d3d12::core {
 	namespace {
 
+		// 【static】d3d12命令
 		class d3d12_command {
 		public:
 			d3d12_command() = default;
@@ -78,45 +80,55 @@ namespace primal::graphics::d3d12::core {
 			void end_frame() {
 				DXCall(_cmd_list->Close());
 				ID3D12CommandList* const cmd_lists[]{ _cmd_list };	//常指针， 只能指向_cmd_list
-				_cmd_queue->ExecuteCommandLists(_countof(cmd_lists), &cmd_lists[0]);
+				_cmd_queue->ExecuteCommandLists(_countof(cmd_lists), &cmd_lists[0]);	//处理所有的cmd
 
-				u64& fence_value{ _fence_value };
-				++fence_value;
-				command_frame& frame{ _cmd_frames[_frame_index] };
-				frame.fence_value = fence_value;
-				_cmd_queue->Signal(_fence, fence_value);
+				u64& fence_value{ _fence_value };	//引用获取当前的栅栏值
+				++fence_value;	//因为完成了一帧，计数加1
+				command_frame& frame{ _cmd_frames[_frame_index] };	//引用获取当前帧
+				frame.fence_value = fence_value;	//更新当前帧的栅栏值
+				_cmd_queue->Signal(_fence, fence_value);	//唤醒所有栅栏值小于这个的帧
 
-				_frame_index = (_frame_index + 1) % frame_buffer_count;
+				_frame_index = (_frame_index + 1) % frame_buffer_count;	//idx循环+1
 			}
 
+			/// <summary>
+			/// 遍历所有帧，阻塞直到当前帧的值到达栅栏值
+			/// </summary>
 			void flush() {
 				for (u32 i{ 0 }; i < frame_buffer_count; ++i) {
 					_cmd_frames[i].wait(_fence_event, _fence);
 				}
 				_frame_index = 0;
 			}
-
+			/// <summary>
+			/// 释放
+			/// </summary>
 			void release() {
-				flush();
-				core::release(_fence);
-				_fence_value = 0;
+				flush();	//先全部阻塞到完成
+				core::release(_fence);	//释放栅栏对象
+				_fence_value = 0;	// 重置栅栏值
 
-				CloseHandle(_fence_event);
-				_fence_event = nullptr;
+				CloseHandle(_fence_event);	//关闭事件句柄
+				_fence_event = nullptr;	//重置句柄指针
 
-				core::release(_cmd_queue);
-				core::release(_cmd_list);
+				core::release(_cmd_queue);	//释放D3D object
+				core::release(_cmd_list);	//释放D3D object
 
 				for (u32 i{ 0 }; i < frame_buffer_count; ++i) {
-					_cmd_frames[i].release();
+					_cmd_frames[i].release();	//释放D3D object
 				}
 			}
-
+			[[nodiscard]]
 			constexpr ID3D12CommandQueue* const command_queue() const { return _cmd_queue; }
+			[[nodiscard]]
 			constexpr ID3D12GraphicsCommandList6* const command_list() const { return _cmd_list; }
+			[[nodiscard]]
 			constexpr u32 frame_index() const { return _frame_index; }
 
 		private:
+			/// <summary>
+			/// 【private】命令帧
+			/// </summary>
 			struct command_frame
 			{
 				ID3D12CommandAllocator* cmd_allocator{ nullptr };
@@ -137,29 +149,41 @@ namespace primal::graphics::d3d12::core {
 						WaitForSingleObject(fence_event, INFINITE);
 					}
 				}
+				/// <summary>
+				/// 释放objects
+				/// </summary>
 				void release() {
 					core::release(cmd_allocator);
+					fence_value = 0;
 				}
 			};
 
-			ID3D12CommandQueue* _cmd_queue{ nullptr };
-			ID3D12GraphicsCommandList6* _cmd_list{ nullptr };
-			ID3D12Fence1* _fence{ nullptr };
-			u64	_fence_value{ 0 };
-			command_frame	_cmd_frames[frame_buffer_count]{};
-			HANDLE _fence_event{ nullptr };
-			u32 _frame_index{ 0 };
+			ID3D12CommandQueue*						_cmd_queue{ nullptr };	//【private】命令队列
+			ID3D12GraphicsCommandList6*				_cmd_list{ nullptr };	//【private】图形命令列表
+			ID3D12Fence1*							_fence{ nullptr };	//【private】栅栏
+			u64										_fence_value{ 0 };	//【private】当前栅栏值
+			command_frame							_cmd_frames[frame_buffer_count]{};	//【private】命令帧数组【放的具体命令帧】
+			HANDLE									_fence_event{ nullptr };	//【private】栅栏事件句柄
+			u32										_frame_index{ 0 };	//【private】当前帧序号
 		};
 
-		ID3D12Device8* main_device{ nullptr };	// 指向主设备的指针
-		IDXGIFactory7* dxgi_factory{ nullptr };	// 工厂指针
-		d3d12_command gfx_command;
+		ID3D12Device8*								main_device{ nullptr };	// 【static】 指向主设备的指针
+		IDXGIFactory7*								dxgi_factory{ nullptr };	// 【static】工厂指针
+		d3d12_command								gfx_command;	//【static】d3d12指令 
+		descriptor_heap								rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };	//【static】渲染目标缓冲区描述符
+		descriptor_heap								dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };	//【static】深度模板缓冲区描述符
+		descriptor_heap								srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };	//【static】常量缓冲区描述符、着色器资源缓冲描述符和随机访问缓冲描述符 【visible】
+		descriptor_heap								uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };	//【static】常量缓冲区描述符、着色器资源缓冲描述符和随机访问缓冲描述符 【!visible】
+		utl::vector<IUnknown*>						deferred_releases[frame_buffer_count]{};	//【static】
+		u32											deferred_releases_flag[frame_buffer_count]{};	// 【static】 每个frame推迟的描述符标志
+		std::mutex									deferred_releases_mtx{};	// 【static】 互斥量
 
-		constexpr D3D_FEATURE_LEVEL minimum_feature_level{ D3D_FEATURE_LEVEL_11_0 };	//支持特性的最小版本
+
+		constexpr D3D_FEATURE_LEVEL minimum_feature_level{ D3D_FEATURE_LEVEL_11_0 };	//【static】 支持特性的最小版本
 
 
 		/// <summary>
-		/// static 创建失败了记得退出
+		/// 【static】 创建失败了记得退出
 		/// </summary>
 		/// <returns></returns>
 		[[nodiscard]]
@@ -169,7 +193,7 @@ namespace primal::graphics::d3d12::core {
 		}
 
 		/// <summary>
-		/// static 选择主适配器
+		/// 【static】选择主适配器
 		/// </summary>
 		/// <returns></returns>
 		[[nodiscard]]
@@ -190,7 +214,7 @@ namespace primal::graphics::d3d12::core {
 		}
 
 		/// <summary>
-		///	static 获取支持的最大特性
+		///	【static】 获取支持的最大特性
 		/// </summary>
 		/// <param name="adapter"></param>
 		/// <returns></returns>
@@ -213,9 +237,42 @@ namespace primal::graphics::d3d12::core {
 			return feature_level_info.MaxSupportedFeatureLevel;
 		}
 
+		/// <summary>
+		/// 【static】 处理frame中被推迟的资源描述符
+		/// </summary>
+		/// <param name="frame_idx"></param>
+		void __declspec(noinline)
+		process_deferred_releases(u32 frame_idx) {
+			std::lock_guard lock{ deferred_releases_mtx };
+			deferred_releases_flag[frame_idx] = 0;
+			
+			// release pending resources
+			rtv_desc_heap.process_deferred_free(frame_idx);
+			dsv_desc_heap.process_deferred_free(frame_idx);
+			srv_desc_heap.process_deferred_free(frame_idx);
+			uav_desc_heap.process_deferred_free(frame_idx);
+
+			utl::vector<IUnknown*>& resources{ deferred_releases[frame_idx] };
+			if (!resources.empty()) {
+				for (auto&& resource : resources)  release(resource);
+				resources.clear();
+			}
+		}
 
 
 	} //anonymous namespace
+
+
+	namespace detail {
+		void deferred_release(IUnknown* resouece) {
+			const u32 frame_idx{ current_frame_index() };	//当前frame的id
+			std::lock_guard lock{ deferred_releases_mtx };
+			deferred_releases[frame_idx].push_back(resouece); //deferred_releases数组中加入要释放的描述符【相当于扔到队列里去了】
+			set_deferred_releases_flag();	//设置当前帧的推迟标志
+
+		}
+	} // namespace detail
+
 
 	/// <summary>
 	/// D3D12的初始化函数，对外使用函数指针进行调用
@@ -235,7 +292,12 @@ namespace primal::graphics::d3d12::core {
 		{
 			// 开启这个debug需要"Graphic Tools" optional feature
 			ComPtr<ID3D12Debug3> debug_interface;
-			DXCall(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_interface)));
+			if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_interface)))) {
+				debug_interface->EnableDebugLayer();
+			}
+			else {
+				OutputDebugStringA("Warning: D3D12 Debug is not available. Verify that graphic tools optional feature is installed in this device.");
+			}
 			debug_interface->EnableDebugLayer();
 			dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
 		}
@@ -256,11 +318,6 @@ namespace primal::graphics::d3d12::core {
 		DXCall(hr = D3D12CreateDevice(main_adapter.Get(), max_feature_level, IID_PPV_ARGS(&main_device)));
 		if (FAILED(hr)) return failed_init();
 
-		new (&gfx_command) d3d12_command(main_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
-		if (!gfx_command.command_queue()) return failed_init();
-
-		NAME_D3D12_OBJECT(main_device, L"MAIN DEVICE");
-
 #ifdef _DEBUG
 		{
 			ComPtr<ID3D12InfoQueue> info_queue;
@@ -272,6 +329,21 @@ namespace primal::graphics::d3d12::core {
 		}
 #endif // _DEBUG
 
+		bool result{ true };
+		result &= rtv_desc_heap.initialize(512, false);
+		result &= dsv_desc_heap.initialize(512, false);
+		result &= srv_desc_heap.initialize(4096, true);
+		result &= uav_desc_heap.initialize(512, false);
+		if (!result) return failed_init();
+
+		new (&gfx_command) d3d12_command(main_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
+		if (!gfx_command.command_queue()) return failed_init();
+		NAME_D3D12_OBJECT(main_device, L"MAIN DEVICE");
+		NAME_D3D12_OBJECT(rtv_desc_heap.heap(), L"RTV Descriptor Heap");
+		NAME_D3D12_OBJECT(dsv_desc_heap.heap(), L"DSV Descriptor Heap");
+		NAME_D3D12_OBJECT(srv_desc_heap.heap(), L"SRV Descriptor Heap");
+		NAME_D3D12_OBJECT(uav_desc_heap.heap(), L"UAV Descriptor Heap");
+
 		return true;
 	}
 
@@ -281,7 +353,21 @@ namespace primal::graphics::d3d12::core {
 	void shutdown()
 	{
 		gfx_command.release();
+
+		// 得先处理这些被推迟的资源，才能释放heap
+		for (u32 i{ 0 }; i < frame_buffer_count; ++i) {
+			process_deferred_releases(i);
+		}
+
 		release(dxgi_factory);
+
+		rtv_desc_heap.release();
+		dsv_desc_heap.release();
+		srv_desc_heap.release();
+		uav_desc_heap.release();
+
+		// 某些资源在它们shutdown/reset/clear时要用deferred release，我们再调用一次去真正地清理
+		process_deferred_releases(0);
 
 #ifdef _DEBUG
 		{
@@ -314,11 +400,32 @@ namespace primal::graphics::d3d12::core {
 
 		ID3D12GraphicsCommandList6* cmd_list{ gfx_command.command_list() };
 
+		const u32 frame_idx{ current_frame_index()};
+		if (deferred_releases_flag[frame_idx]) {
+			process_deferred_releases(frame_idx);
+		}
+
 
 		//记录操作
 		//....
 		//完成记录， 执行
 		//通知下一帧并将fence_index加一
 		gfx_command.end_frame();
+	}
+
+
+	ID3D12Device* const device()
+	{
+		return main_device;
+	}
+
+	u32 current_frame_index()
+	{
+		return gfx_command.frame_index();
+	}
+
+	void set_deferred_releases_flag()
+	{
+		deferred_releases_flag[current_frame_index()] = 1;
 	}
 }
