@@ -12,7 +12,6 @@ namespace primal::graphics {
 	{
 		bool (*initialize)(void);	//函数指针 初始化
 		void (*shutdown)(void);		//函数指针 结束
-		void (*render)(void);	//函数指针 渲染
 
 		struct 
 		{

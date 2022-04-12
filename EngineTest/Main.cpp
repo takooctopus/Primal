@@ -17,9 +17,9 @@
 #ifdef _WIN64
 #include <Windows.h>
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
-#ifdef DEBUG
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF)
-#endif // DEBUG
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif // _DEBUG
 	engine_test test {};
 	if (test.initialize()) {
 		MSG msg{};

@@ -1,6 +1,7 @@
 #include "D3D12Core.h"
 #include "D3D12CommonHeaders.h"
 #include "D3D12Resources.h"
+#include "D3D12Surface.h"
 
 using namespace Microsoft::WRL;
 
@@ -170,13 +171,15 @@ namespace primal::graphics::d3d12::core {
 		ID3D12Device8*								main_device{ nullptr };	// 【static】 指向主设备的指针
 		IDXGIFactory7*								dxgi_factory{ nullptr };	// 【static】工厂指针
 		d3d12_command								gfx_command;	//【static】d3d12指令 
+		utl::vector<d3d12_surface>					surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
+
 		descriptor_heap								rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };	//【static】渲染目标缓冲区描述符
 		descriptor_heap								dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };	//【static】深度模板缓冲区描述符
 		descriptor_heap								srv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };	//【static】常量缓冲区描述符、着色器资源缓冲描述符和随机访问缓冲描述符 【visible】
 		descriptor_heap								uav_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV };	//【static】常量缓冲区描述符、着色器资源缓冲描述符和随机访问缓冲描述符 【!visible】
 		utl::vector<IUnknown*>						deferred_releases[frame_buffer_count]{};	//【static】
 		u32											deferred_releases_flag[frame_buffer_count]{};	// 【static】 每个frame推迟的描述符标志
-		std::mutex									deferred_releases_mtx{};	// 【static】 互斥量
+		std::mutex									deferred_releases_mutex{};	// 【static】 互斥量
 
 
 		constexpr DXGI_FORMAT render_target_format{ DXGI_FORMAT_B8G8R8A8_UNORM_SRGB };	// 现在先用着srgb
@@ -243,10 +246,10 @@ namespace primal::graphics::d3d12::core {
 		/// </summary>
 		/// <param name="frame_idx"></param>
 		void __declspec(noinline)
-		process_deferred_releases(u32 frame_idx) {
-			std::lock_guard lock{ deferred_releases_mtx };
+			process_deferred_releases(u32 frame_idx) {
+			std::lock_guard lock{ deferred_releases_mutex };
 			deferred_releases_flag[frame_idx] = 0;
-			
+
 			// release pending resources
 			rtv_desc_heap.process_deferred_free(frame_idx);
 			dsv_desc_heap.process_deferred_free(frame_idx);
@@ -267,7 +270,7 @@ namespace primal::graphics::d3d12::core {
 	namespace detail {
 		void deferred_release(IUnknown* resouece) {
 			const u32 frame_idx{ current_frame_index() };	//当前frame的id
-			std::lock_guard lock{ deferred_releases_mtx };
+			std::lock_guard lock{ deferred_releases_mutex };
 			deferred_releases[frame_idx].push_back(resouece); //deferred_releases数组中加入要释放的描述符【相当于扔到队列里去了】
 			set_deferred_releases_flag();	//设置当前帧的推迟标志
 
@@ -393,27 +396,6 @@ namespace primal::graphics::d3d12::core {
 		release(main_device);
 	}
 
-	void render() {
-		// 等待gpu完成command allocator
-		// 一旦完成就重置allocator
-		// 这里释放被用来存储command的内存空间
-		gfx_command.begin_frame();
-
-		ID3D12GraphicsCommandList6* cmd_list{ gfx_command.command_list() };
-
-		const u32 frame_idx{ current_frame_index()};
-		if (deferred_releases_flag[frame_idx]) {
-			process_deferred_releases(frame_idx);
-		}
-
-
-		//记录操作
-		//....
-		//完成记录， 执行
-		//通知下一帧并将fence_index加一
-		gfx_command.end_frame();
-	}
-
 
 	ID3D12Device* const device()
 	{
@@ -446,5 +428,53 @@ namespace primal::graphics::d3d12::core {
 	void set_deferred_releases_flag()
 	{
 		deferred_releases_flag[current_frame_index()] = 1;
+	}
+	surface create_surface(platform::window window)
+	{
+		surface_id id{ (u32)surfaces.size() };
+		surfaces.emplace_back(window);	//传入窗口初始化一个d3d12_surface并加入surfaces数组中
+		surfaces[id].create_swap_chain(dxgi_factory, gfx_command.command_queue(), render_target_format);
+		return surface{ id };
+	}
+	void remove_surface(surface_id id)
+	{
+		gfx_command.flush();	//保证gpu中已经结束
+		surfaces[id].~d3d12_surface();
+	}
+	void resize_surface(surface_id id, u32 width, u32 height)
+	{
+		gfx_command.flush();	//保证gpu中已经结束
+		surfaces[id].resize(width, height);
+	}
+	u32 surface_width(surface_id id)
+	{
+		return surfaces[id].width();
+	}
+	u32 surface_height(surface_id id)
+	{
+		return surfaces[id].height();
+	}
+	void render_surface(surface_id id)
+	{
+		// 等待gpu完成command allocator
+		// 一旦完成就重置allocator
+		// 这里释放被用来存储command的内存空间
+		gfx_command.begin_frame();
+
+		ID3D12GraphicsCommandList6* cmd_list{ gfx_command.command_list() };
+
+		const u32 frame_idx{ current_frame_index() };
+		if (deferred_releases_flag[frame_idx]) {
+			process_deferred_releases(frame_idx);
+		}
+
+		const d3d12_surface& surface{ surfaces[id] };
+		surface.present();
+
+		//记录操作
+		//....
+		//完成记录， 执行
+		//通知下一帧并将fence_index加一
+		gfx_command.end_frame();
 	}
 }

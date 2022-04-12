@@ -19,12 +19,6 @@ namespace primal::graphics::d3d12::core {
 	void shutdown();
 
 	/// <summary>
-	/// 核心渲染函数
-	/// </summary>
-	void render();
-
-
-	/// <summary>
 	/// 模板类 判断null的资源释放
 	/// </summary>
 	template <typename T>
@@ -64,7 +58,7 @@ namespace primal::graphics::d3d12::core {
 	descriptor_heap& rtv_heap();
 
 	[[nodiscard]]
-	descriptor_heap& dev_heap();
+	descriptor_heap& dsv_heap();
 
 	[[nodiscard]]
 	descriptor_heap& srv_heap();
@@ -85,5 +79,12 @@ namespace primal::graphics::d3d12::core {
 	/// 设定当前frame被推迟
 	/// </summary>
 	void set_deferred_releases_flag();
+
+	surface create_surface(platform::window window);
+	void remove_surface(surface_id id);
+	void resize_surface(surface_id id, u32 width, u32 height);
+	u32 surface_width(surface_id id);
+	u32 surface_height(surface_id id);
+	void render_surface(surface_id id);
 	
 }
