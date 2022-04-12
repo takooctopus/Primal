@@ -13,34 +13,13 @@ namespace primal::platform {
 			DWORD			style{ WS_VISIBLE };
 			bool			is_fullscreen{ false };
 			bool			is_closed{ false };
+
+			~window_info() {
+				assert(!is_fullscreen);
+			}
 		};
 
-		utl::vector<window_info> windows;
-		utl::vector<window_id> available_slots;
-
-		[[nodiscard]]
-		window_id add_to_windows(window_info info) {
-			window_id id{ id::invalid_id };
-			if (available_slots.empty()) {
-				id = (window_id)windows.size();
-				windows.emplace_back(info);
-			}
-			else {
-				id = available_slots.back();
-				available_slots.pop_back();
-				assert(id::is_valid(id));
-				windows[id] = info;
-			}
-			// 注意这里返回的是windows这个vector的index，所以是u32类型的
-			return id;
-		}
-
-
-		void remove_from_windows(window_id id) {
-			assert(id < windows.size());
-			available_slots.emplace_back(id);
-
-		}
+		utl::free_list<window_info> windows;
 
 
 		/// <summary>
@@ -284,7 +263,7 @@ namespace primal::platform {
 
 		if (info.hwnd) {
 			DEBUG_OP(SetLastError(0));
-			const window_id id{ add_to_windows(info) };
+			const window_id id{ windows.add(info) };
 			// 将window_id保存到WindowLongPtr里面去作为用户数据（方便我们以后拿到hwnd时去数组找对应的window是哪一个）
 			SetWindowLongPtr(info.hwnd, GWLP_USERDATA, (LONG_PTR)id);
 
@@ -303,7 +282,7 @@ namespace primal::platform {
 	{
 		window_info info{ get_from_id(id) };
 		DestroyWindow(info.hwnd);
-		remove_from_windows(id);
+		windows.remove(id);
 }
 #else
 #error "must implement at least one platform"
