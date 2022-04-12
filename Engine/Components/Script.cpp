@@ -159,6 +159,7 @@ namespace primal::script {
 		// 获取script_id指向在entity_scripts中对应的index
 		const id::id_type index{ id_mapping[id::index(id)] };
 		utl::erase_unordered(entity_scripts, index);
+		//entity_scripts.erase_unordered(index);
 		// 还要更新原来entity_scripts末尾元素的对应关系
 		id_mapping[id::index(last_id)] = index;
 		// 删除后我们将被删除的script_id对应的指向非法

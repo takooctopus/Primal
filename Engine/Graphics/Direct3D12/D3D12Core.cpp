@@ -168,10 +168,12 @@ namespace primal::graphics::d3d12::core {
 			u32										_frame_index{ 0 };	//【private】当前帧序号
 		};
 
+		using surface_collection = utl::free_list<d3d12_surface>;
+
 		ID3D12Device8*								main_device{ nullptr };	// 【static】 指向主设备的指针
 		IDXGIFactory7*								dxgi_factory{ nullptr };	// 【static】工厂指针
 		d3d12_command								gfx_command;	//【static】d3d12指令 
-		utl::vector<d3d12_surface>					surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
+		surface_collection					surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
 
 		descriptor_heap								rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };	//【static】渲染目标缓冲区描述符
 		descriptor_heap								dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };	//【static】深度模板缓冲区描述符
@@ -431,15 +433,14 @@ namespace primal::graphics::d3d12::core {
 	}
 	surface create_surface(platform::window window)
 	{
-		surface_id id{ (u32)surfaces.size() };
-		surfaces.emplace_back(window);	//传入窗口初始化一个d3d12_surface并加入surfaces数组中
+		surface_id id{ surfaces.add(window) }; //传入窗口初始化一个d3d12_surface并加入surfaces数组中
 		surfaces[id].create_swap_chain(dxgi_factory, gfx_command.command_queue(), render_target_format);
 		return surface{ id };
 	}
 	void remove_surface(surface_id id)
 	{
 		gfx_command.flush();	//保证gpu中已经结束
-		surfaces[id].~d3d12_surface();
+		surfaces.remove(id);
 	}
 	void resize_surface(surface_id id, u32 width, u32 height)
 	{

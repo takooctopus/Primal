@@ -1,7 +1,7 @@
 #pragma once
 
 
-#define USE_STL_VECTOR 1
+#define USE_STL_VECTOR 0
 #define USE_STL_DEQUE 1
 #define USE_STL_UNORDERED_MAP 1
 
@@ -25,6 +25,14 @@ namespace primal::utl {
 		else {
 			v.clear();
 		}
+	}
+}
+#else
+#include "Vector.h"
+namespace primal::utl {
+	template <typename T>
+	void erase_unordered(vector<T>& v, size_t index) {
+		v.erase_unordered(index);
 	}
 }
 #endif
