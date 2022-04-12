@@ -15,7 +15,7 @@ namespace primal::platform {
 		/// </summary>
 		/// <param name="id">The identifier.</param>
 		constexpr explicit window(window_id id) : _id{ id } {}
-		constexpr window() : _id{ id::invalid_id } {}
+		constexpr window() = default;
 
 		/// <summary>
 		/// Gets the identifier.
@@ -79,7 +79,7 @@ namespace primal::platform {
 		/// 获取窗口宽度
 		/// </summary>
 		/// <returns></returns>
-		u32 witdh() const;
+		u32 width() const;
 
 		/// <summary>
 		/// 获取窗口高度

@@ -338,7 +338,7 @@ namespace primal::platform {
 		assert(is_valid());
 		resize_window(_id, width, height);
 	}
-	u32 window::witdh() const {
+	u32 window::width() const {
 		assert(is_valid());
 		math::u32v4 s{ size() };
 		return s.z - s.x;
