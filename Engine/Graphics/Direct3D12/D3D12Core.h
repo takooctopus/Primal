@@ -52,7 +52,7 @@ namespace primal::graphics::d3d12::core {
 	/// ·µ»Ødevice
 	/// </summary>
 	[[nodiscard]]
-	ID3D12Device* const device();
+	ID3D12Device8* const device();
 	
 	[[nodiscard]]
 	descriptor_heap& rtv_heap();

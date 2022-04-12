@@ -2,13 +2,15 @@
 #include "D3D12CommonHeaders.h"
 #include "D3D12Resources.h"
 #include "D3D12Surface.h"
+#include "D3D12Helpers.h"
 
 using namespace Microsoft::WRL;
 
 namespace primal::graphics::d3d12::core {
 	// TOREMOVE: =========================================================================================================================
 	void create_a_root_signature();
-	
+	void create_a_root_signature2();
+
 	namespace {
 		// 【static】d3d12命令
 		class d3d12_command {
@@ -175,7 +177,7 @@ namespace primal::graphics::d3d12::core {
 		ID3D12Device8*								main_device{ nullptr };	// 【static】 指向主设备的指针
 		IDXGIFactory7*								dxgi_factory{ nullptr };	// 【static】工厂指针
 		d3d12_command								gfx_command;	//【static】d3d12指令 
-		surface_collection					surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
+		surface_collection							surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
 
 		descriptor_heap								rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };	//【static】渲染目标缓冲区描述符
 		descriptor_heap								dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };	//【static】深度模板缓冲区描述符
@@ -354,6 +356,7 @@ namespace primal::graphics::d3d12::core {
 
 		// TOREMOVE: =========================================================================================================================
 		create_a_root_signature();
+		create_a_root_signature2();
 
 		return true;
 	}
@@ -404,7 +407,7 @@ namespace primal::graphics::d3d12::core {
 	}
 
 
-	ID3D12Device* const device()
+	ID3D12Device8* const device()
 	{
 		return main_device;
 	}
@@ -567,8 +570,104 @@ namespace primal::graphics::d3d12::core {
 
 		// use root_signature
 		// ...
+#if 0
+		ID3D12GraphicsCommandList6* cmd_list{};
+		cmd_list->SetGraphicsRootSignature(root_sig);
+		//only one resource heap and one sampler heap can be set
+		//so max heap size is 2
+		ID3D12DescriptorHeap* heaps[]{ srv_heap().heap() };
+		cmd_list->SetDescriptorHeaps(1, &heaps[0]);
+		//set root parameters
+		float dt{ 16.6f };
+		u32 dt_uint{ *((u32*)&dt) };
+		u32 frame_nr{ 4287827 };
+		D3D12_GPU_VIRTUAL_ADDRESS address_of_constant_buffer{};
+		cmd_list->SetGraphicsRoot32BitConstant(0, dt_uint, 0);
+		cmd_list->SetGraphicsRoot32BitConstant(0, frame_nr, 1);
+		cmd_list->SetGraphicsRootConstantBufferView(1, address_of_constant_buffer);
+		cmd_list->SetGraphicsRootDescriptorTable(2, srv_heap().gpu_start());
+		//record the rest of rendering commands...
+#endif
 
 		// shutdown
 		release(root_sig);
+	}
+
+	void create_a_root_signature2() {
+		d3dx::d3d12_root_parameter params[3]{};
+		params[0].as_constants(2, D3D12_SHADER_VISIBILITY_PIXEL, 0);
+		params[1].as_cbv(D3D12_SHADER_VISIBILITY_PIXEL, 1);
+		d3dx::d3d12_descriptor_range range{ D3D12_DESCRIPTOR_RANGE_TYPE_SRV,D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,0 };
+		params[2].as_descriptor_table(D3D12_SHADER_VISIBILITY_PIXEL, &range, 1);
+		d3dx::d3d12_root_signature_desc root_sig_desc{ _countof(params), &params[0] };
+		ID3D12RootSignature* root_sig{ root_sig_desc.create() };
+
+		// use root_sig
+
+
+	}
+
+	ID3D12RootSignature* _root_signature;
+	D3D12_SHADER_BYTECODE _vs{};
+
+	template <D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type, typename T>
+	class alignas(void*)  d3d12_pipeline_state_subobject {
+	public:
+		d3d12_pipeline_state_subobject() = default;
+		constexpr d3d12_pipeline_state_subobject(T subobject) : _type{ type }, _subobject{ subobject }{}
+		d3d12_pipeline_state_subobject& operator=(const T& subobject) {
+			_subobject = subobject;
+			return *this;
+		}
+	private:
+		const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _type{ type };
+		T	_subobject{};
+	};
+
+	using d3d12_pipeline_state_subobject_root_signature = d3d12_pipeline_state_subobject<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE, ID3D12RootSignature*>;
+	using d3d12_pipeline_state_subobject_vs = d3d12_pipeline_state_subobject<D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS, D3D12_SHADER_BYTECODE>;
+
+	void create_a_pipeline_state_object() {
+		struct {
+			struct alignas(void*) {
+				const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE		type{ D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE };
+				ID3D12RootSignature*							root_signature;
+			} root_sig;
+			struct alignas(void*) {
+				const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE		type{ D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS };
+				D3D12_SHADER_BYTECODE							vs_code{};
+			} vs;
+		} stream;
+
+		stream.root_sig.root_signature = _root_signature;
+		stream.vs.vs_code = _vs;
+
+		//device()->CreateGraphicsPipelineState();
+		//device()->CreateComputePipelineState();
+		D3D12_PIPELINE_STATE_STREAM_DESC desc{};
+		desc.pPipelineStateSubobjectStream = &stream;
+		desc.SizeInBytes = sizeof(stream);
+
+		ID3D12PipelineState* pso{ nullptr };
+		device()->CreatePipelineState(&desc, IID_PPV_ARGS(&pso));
+
+		// use pso during rendering
+
+		// when renderer shut down
+		release(pso);
+	}
+
+	void create_a_pipeline_state_object2() {
+		struct {
+			d3dx::d3d12_pipeline_state_subobject_root_signature root_sig{ _root_signature };
+			d3dx::d3d12_pipeline_state_subobject_vs	vs{ _vs };
+		} stream;
+
+		auto pso = d3dx::create_pipeline_state(&stream, sizeof(stream));
+
+		// use pso during rendering
+
+		// when renderer shut down
+		//release(pso);
 	}
 }
