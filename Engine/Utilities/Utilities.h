@@ -17,7 +17,7 @@ namespace primal::utl {
 	/// <param name="v">The v.</param>
 	/// <param name="index">The index.</param>
 	template <typename T>
-	void erase_unordered(utl::vector<T>& v, size_t index) {
+	void erase_unordered(T& v, size_t index) {
 		if (v.size() > 1) {
 			std::iter_swap(v.begin() + index, v.end() - 1);
 			v.pop_back();
@@ -31,7 +31,7 @@ namespace primal::utl {
 #include "Vector.h"
 namespace primal::utl {
 	template <typename T>
-	void erase_unordered(vector<T>& v, size_t index) {
+	void erase_unordered(T& v, size_t index) {
 		v.erase_unordered(index);
 	}
 }
