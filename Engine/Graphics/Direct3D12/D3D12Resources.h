@@ -2,6 +2,7 @@
 #include "D3D12CommonHeaders.h"
 
 namespace primal::graphics::d3d12 {
+	//	Descriptor Heap		/////////////////////////////////////////////////////////////////////////////////////////////////////////
 	class descriptor_heap;	// 先制声明
 
 	/// <summary>
@@ -106,4 +107,174 @@ namespace primal::graphics::d3d12 {
 		u32									_descriptor_size{ 0 };	//文件描述符大小
 		const D3D12_DESCRIPTOR_HEAP_TYPE	_type{};	//文件名描述符类型
 	};
+
+
+
+
+
+	//	RENDER TEXTURE		/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// <summary>
+	/// d3d12纹理初始化结构体
+	/// </summary>
+	struct d3d12_texture_init_info {
+		ID3D12Heap1*						heap{nullptr};			// 如果有这个堆指针的话，我们在里面初始化时使用CreatePlacedResource()扔到堆中，要不就要放到默认里
+		ID3D12Resource*						resource{ nullptr };	// 资源
+		D3D12_SHADER_RESOURCE_VIEW_DESC*	srv_desc{ nullptr };	// srv着色器资源视图 描述信息
+		D3D12_RESOURCE_DESC*				desc{ nullptr };		// 资源描述信息
+		D3D12_RESOURCE_ALLOCATION_INFO1		allocation_info{};		// heap非null时的偏移量等信息
+		D3D12_RESOURCE_STATES				initial_state{};		// 初始化状态
+		D3D12_CLEAR_VALUE					clear_value{};			// 资源默认清除值
+	};
+
+
+	/// <summary>
+	/// d3d12纹理
+	/// </summary>
+	class d3d12_texture {
+	public:
+		constexpr static u32 max_mips{ 14 };	//最大支持16K
+
+		d3d12_texture() = default;
+		explicit d3d12_texture(d3d12_texture_init_info info);
+		DISABLE_COPY(d3d12_texture);
+		constexpr d3d12_texture(d3d12_texture&& o)
+			:_resource(o._resource), _srv(o._srv)
+		{
+			o.reset();
+		}
+
+		~d3d12_texture() {
+			release();
+		}
+
+		constexpr d3d12_texture& operator=(d3d12_texture&& o) {
+			assert(this != &o);
+			if (this != &o) {
+				release();
+				move(o);
+			}
+			return *this;
+		}
+		void release();
+		constexpr ID3D12Resource* resource() const {
+			return _resource;
+		}
+		constexpr descriptor_handle srv() const {
+			return _srv;
+		}
+	private:
+		constexpr void move(d3d12_texture &o) {
+			_resource = o._resource;
+			_srv = o._srv;
+			o.reset();
+		}
+
+		constexpr void reset() {
+			_resource = nullptr;
+			_srv = {};
+		}
+		ID3D12Resource*		_resource{ nullptr };	//资源
+		descriptor_handle	_srv;	//资源描述句柄【shader resource view】这里面是一个着色器
+	};
+
+
+	/// <summary>
+	/// d3d12渲染纹理
+	/// </summary>
+	class d3d12_render_texture {
+	public:
+		d3d12_render_texture() = default;
+
+		explicit d3d12_render_texture(d3d12_texture_init_info info);
+
+		~d3d12_render_texture() {
+			release();
+		}
+
+		DISABLE_COPY(d3d12_render_texture);
+		constexpr d3d12_render_texture(d3d12_render_texture&& o) :
+			_texture{ std::move(o._texture) }, _mip_count{o._mip_count}{
+			for (u32 i{ 0 }; i < _mip_count; ++i) {
+				_rtv[i] = o._rtv[i];
+			}
+			o.reset();
+		}
+
+		constexpr d3d12_render_texture& operator=(d3d12_render_texture&& o) {
+			assert(this != &o);
+			if (this != &o) {
+				release();
+				move(o);
+			}
+			return *this;
+		}
+
+
+		void release();
+		constexpr u32 mip_count() const { return _mip_count; }
+		constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv(u32 mip_index) const { assert(mip_index < _mip_count); return _rtv[mip_index].cpu; }
+		constexpr descriptor_handle srv() const { return _texture.srv(); }
+		constexpr ID3D12Resource* const resource() const { return _texture.resource(); }
+
+	private:
+		constexpr void move(d3d12_render_texture& o) {
+			_texture = std::move(o._texture);
+			_mip_count = o._mip_count;
+			for (u32 i{ 0 }; i < _mip_count; ++i) {
+				_rtv[i] = o._rtv[i];
+			}
+			o.reset();
+		}
+
+		constexpr void reset() {
+			for (u32 i{ 0 }; i < _mip_count; ++i) {
+				_rtv[i] = {};
+			}
+			_mip_count = 0;
+		}
+
+		d3d12_texture				_texture{};						// 包含一个d3d12纹理类
+		descriptor_handle			_rtv[d3d12_texture::max_mips]{};	// render target view 空间有很多个
+		u32							_mip_count{ 0 };	// 当前的指令数
+
+	};
+
+	//	DEPTH BUFFER		/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	/// <summary>
+	/// d3d12深度缓冲
+	/// </summary>
+	class d3d12_depth_buffer {
+	public:
+		d3d12_depth_buffer() = default;
+		explicit d3d12_depth_buffer(d3d12_texture_init_info info);
+		DISABLE_COPY(d3d12_depth_buffer);
+		~d3d12_depth_buffer() { release(); }
+		constexpr d3d12_depth_buffer(d3d12_depth_buffer&& o) :
+			_texture{ std::move(o._texture) }, _dsv{o._dsv} {
+			o._dsv = {};
+		}
+		constexpr d3d12_depth_buffer& operator=(d3d12_depth_buffer&& o) {
+			assert(this != &o);
+			if (this != &o) {
+				_texture = std::move(o._texture);
+				_dsv = o._dsv;
+				o._dsv = {};
+			}
+			return *this;
+		}
+
+		void release();
+		constexpr D3D12_CPU_DESCRIPTOR_HANDLE dsv() const { return _dsv.cpu; }
+		constexpr descriptor_handle srv() const { return _texture.srv(); }
+		constexpr ID3D12Resource* const resource() const { return _texture.resource(); }
+	private:
+		d3d12_texture				_texture{};	//同样的，包含一个纹理	
+		descriptor_handle			_dsv{};	//depth stencil 深度缓冲
+	};
+
+
+
+	
 }

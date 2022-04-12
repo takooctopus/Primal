@@ -1,5 +1,6 @@
 #include "D3D12Resources.h"
 #include "D3D12Core.h"
+#include "D3D12Helpers.h"
 
 namespace primal::graphics::d3d12 {
 	//	Descriptor Heap		/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -9,21 +10,21 @@ namespace primal::graphics::d3d12 {
 		assert(capacity && capacity < D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2);
 		assert(!(_type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER && capacity > D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE));
 		if (_type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV || _type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV) {
-			// 这两种类型是没得看的
+			// 这两种类型是没得看的【depth stencil \ render target】
 			is_shader_visible = false;
 		}
 		release();	//初始化之前把以前的全部释放
 
 		// 拿到主设备指针
-		ID3D12Device* const device{ core::device() };
+		auto* const device{ core::device() };
 		assert(device);
 
 		// 通过描述信息创建一个描述符堆
 		D3D12_DESCRIPTOR_HEAP_DESC desc{};
 		desc.Flags = is_shader_visible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		desc.NumDescriptors = capacity;
-		desc.Type = _type;
-		desc.NodeMask = 0;
+		desc.NumDescriptors = capacity;	//总的大小
+		desc.Type = _type;	//创建的描述符堆的类型
+		desc.NodeMask = 0;	
 		HRESULT hr{ S_OK };
 		DXCall(hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&_heap)));
 		if (FAILED(hr)) return false;
@@ -39,11 +40,11 @@ namespace primal::graphics::d3d12 {
 
 		// 保证没有空闲的描述符是被推迟了的
 		DEBUG_OP(for (u32 i{ 0 }; i < frame_buffer_count; ++i) assert(_deferred_free_indices[i].empty()));
-		
+
 
 		// 赋值基本属性
-		_descriptor_size = device->GetDescriptorHandleIncrementSize(_type);
-		_cpu_start = _heap->GetCPUDescriptorHandleForHeapStart();
+		_descriptor_size = device->GetDescriptorHandleIncrementSize(_type);	//拿到这个类型堆的文件描述符大小
+		_cpu_start = _heap->GetCPUDescriptorHandleForHeapStart();	
 		_gpu_start = is_shader_visible ? _heap->GetGPUDescriptorHandleForHeapStart() : D3D12_GPU_DESCRIPTOR_HANDLE{ 0 };
 
 		return true;
@@ -60,9 +61,9 @@ namespace primal::graphics::d3d12 {
 		std::lock_guard lock{ _mutex };
 		assert(frame_idx < frame_buffer_count);
 
-		utl::vector<u32>& indices{ _deferred_free_indices[frame_idx]};	//通过引用得到当前帧中被推迟的文件描述符数组【里面是序号】
+		utl::vector<u32>& indices{ _deferred_free_indices[frame_idx] };	//通过引用得到当前帧中被推迟的文件描述符数组【里面是序号】
 		if (!indices.empty()) {
-			for ( auto& index : indices) {
+			for (auto& index : indices) {
 				--_size;
 				_free_handles[_size] = index;
 			}
@@ -111,4 +112,143 @@ namespace primal::graphics::d3d12 {
 
 		handle = {};	//重置handle
 	}
+
+
+
+
+	//	D3D12 TEXTURE		/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	d3d12_texture::d3d12_texture(d3d12_texture_init_info info)
+	{
+		auto* const device{ core::device() };	//用auto以实现device多态
+		assert(device);
+
+		// 判断一下这个纹理支不支持渲染目标和深度缓冲
+		D3D12_CLEAR_VALUE* const clear_value{
+			(info.desc
+			&& (info.desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET
+				|| info.desc->Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
+			? &info.clear_value : nullptr
+		};
+
+		if (info.resource) {
+			assert(!info.heap);
+			_resource = info.resource;
+		}
+		else if (info.heap && info.desc) {
+			assert(!info.resource);
+			DXCall(device->CreatePlacedResource(
+				info.heap,	//要是info里面有堆信息就用这个放到对应的堆中
+				info.allocation_info.Offset,	// 再加上分配的偏移量
+				info.desc, info.initial_state,
+				clear_value,
+				IID_PPV_ARGS(&_resource)
+			));
+		}
+		else if (info.desc) {
+			assert(!info.heap && !info.resource);
+
+			DXCall(device->CreateCommittedResource(
+				&d3dx::heap_properties.default_heap,
+				D3D12_HEAP_FLAG_NONE,	//没有heap就放到默认里，也不要偏移了
+				info.desc,
+				info.initial_state,
+				clear_value,
+				IID_PPV_ARGS(&_resource)
+			));
+		}
+
+		_srv = core::srv_heap().allocate();	// 为纹理分配一个着色器shader resource
+
+		device->CreateShaderResourceView(_resource, info.srv_desc, _srv.cpu);
+	}
+
+	void d3d12_texture::release()
+	{
+		core::srv_heap().free(_srv);
+		core::deferred_release(_resource);
+	}
+
+
+	//	RENDER TEXTURE		/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	d3d12_render_texture::d3d12_render_texture(d3d12_texture_init_info info):
+		_texture{info} {
+
+		assert(info.desc);
+		_mip_count = resource()->GetDesc().MipLevels;	//查看当前资源的允许的Mip等级数
+		assert(_mip_count && _mip_count <= d3d12_texture::max_mips);
+
+		descriptor_heap& rtv_heap{ core::rtv_heap() };	// 拿到core中的主rtv堆
+		D3D12_RENDER_TARGET_VIEW_DESC desc{};
+		desc.Format = info.desc->Format;	//数据格式
+		desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;	// 几维
+		desc.Texture2D.MipSlice = 0;	// 初始缓冲区索引设置为0
+
+		auto* const device{ core::device() };
+		assert(device);
+
+		for (u32 i{ 0 }; i < _mip_count; ++i) {
+			_rtv[i] = rtv_heap.allocate();
+			device->CreateRenderTargetView(resource(), &desc, _rtv[i].cpu);
+			++desc.Texture2D.MipSlice;	//每创建一个RenderTargetView， 缓冲区索引+1
+		}
+	}
+
+
+	void d3d12_render_texture::release() {
+		for (u32 i{ 0 }; i < _mip_count; ++i) {
+			core::rtv_heap().free(_rtv[i]);
+		}
+		_texture.release();
+		_mip_count = 0;
+	}
+
+	//	DEPTH BUFFER		/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+	d3d12_depth_buffer::d3d12_depth_buffer(d3d12_texture_init_info info){
+		assert(info.desc);
+		const DXGI_FORMAT dsv_format{ info.desc->Format };	// dsv数据格式
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
+		if (info.desc->Format == DXGI_FORMAT_D32_FLOAT) {
+			info.desc->Format = DXGI_FORMAT_R32_TYPELESS;
+			srv_desc.Format = DXGI_FORMAT_R32_FLOAT;	// 根据dsv数据格式选择srv【shader resource】的格式
+		}
+
+		srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;	// 对采样贴图时返回的数据进行排序，正常情况使用D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING即可
+		srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D; // 资源的尺寸，比如1D贴图，2D贴图，立方体贴图等。
+		srv_desc.Texture2D.MipLevels = 1;	//mimap数量
+		srv_desc.Texture2D.MostDetailedMip = 0;	//确定细节程度最高的mipmap索引，范围[0,Mipmap - 1]
+		srv_desc.Texture2D.PlaneSlice = 0;	//平面索引
+		srv_desc.Texture2D.ResourceMinLODClamp = 0.f;	//可以获取的最小的mipmap等级，0表示所有等级都可以获取
+
+		assert(!info.srv_desc && !info.resource);
+		info.srv_desc = &srv_desc;
+		_texture = d3d12_texture(info);		// 先创建纹理资源
+
+
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc{};
+		dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+		dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
+		dsv_desc.Format = dsv_format;
+		dsv_desc.Texture2D.MipSlice = 0;
+
+		_dsv = core::dsv_heap().allocate();	//再创建depth stencil view
+
+		auto* const device{ core::device() };
+		assert(device);
+		device->CreateDepthStencilView(resource(), &dsv_desc, _dsv.cpu);
+	}
+
+	void d3d12_depth_buffer::release()
+	{
+		core::dsv_heap().free(_dsv);
+		_texture.release();
+	}
+
+
 }
