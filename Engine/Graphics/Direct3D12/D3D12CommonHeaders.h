@@ -1,6 +1,7 @@
 #pragma once
 #include "..\Common\CommonHeaders.h"
 #include "..\Graphics\Renderer.h"
+#include "..\Platform\Window.h"
 #include <dxgi1_6.h>
 #include <d3d12.h>
 #include <wrl.h>
@@ -10,7 +11,7 @@
 
 
 namespace primal::graphics::d3d12 {
-	constexpr u32 frame_buffer_count{ 3 };
+	constexpr u32 frame_buffer_count{ 3 };	//设定的最大帧数
 }
 
 

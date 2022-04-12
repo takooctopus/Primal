@@ -1,5 +1,10 @@
 #pragma once
 #include "D3D12CommonHeaders.h"
+
+namespace primal::graphics::d3d12 {
+	class descriptor_heap;
+}
+
 namespace primal::graphics::d3d12::core {
 
 	/// <summary>
@@ -54,6 +59,21 @@ namespace primal::graphics::d3d12::core {
 	/// </summary>
 	[[nodiscard]]
 	ID3D12Device* const device();
+	
+	[[nodiscard]]
+	descriptor_heap& rtv_heap();
+
+	[[nodiscard]]
+	descriptor_heap& dev_heap();
+
+	[[nodiscard]]
+	descriptor_heap& srv_heap();
+
+	[[nodiscard]]
+	descriptor_heap& uav_heap();
+
+	[[nodiscard]]
+	DXGI_FORMAT	default_render_target_format();
 
 	/// <summary>
 	/// µ±Ç°frameµÄindex

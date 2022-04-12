@@ -43,5 +43,43 @@ namespace primal::graphics {
 		gfx.render();
 	}
 
+	surface create_surface(platform::window window)
+	{
+		return gfx.surface.create(window);
+	}
+
+	void remove_surface(surface_id id)
+	{
+		assert(id::is_valid(id));
+		gfx.surface.remove(id);
+	}
+
+
+
+
+	void surface::resize(u32 width, u32 height) const
+	{
+		assert(id::is_valid(_id));
+		gfx.surface.resize(_id, width, height);
+	}
+
+	u32 surface::witdh() const
+	{
+		assert(id::is_valid(_id));
+		return gfx.surface.width(_id);
+	}
+
+	u32 surface::height() const
+	{
+		assert(id::is_valid(_id));
+		return gfx.surface.height(_id);
+	}
+
+	void surface::render() const
+	{
+		assert(id::is_valid(_id));
+		gfx.surface.render(_id);
+	}
+
 
 }// primal::graphics

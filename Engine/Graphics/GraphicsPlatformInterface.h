@@ -1,6 +1,7 @@
 #pragma once
 #include "CommonHeaders.h"
 #include "Renderer.h"
+#include "..\Platform\Window.h"
 
 namespace primal::graphics {
 
@@ -12,6 +13,16 @@ namespace primal::graphics {
 		bool (*initialize)(void);	//函数指针 初始化
 		void (*shutdown)(void);		//函数指针 结束
 		void (*render)(void);	//函数指针 渲染
+
+		struct 
+		{
+			surface(*create)(platform::window);
+			void (*remove)(surface_id);
+			void (*resize)(surface_id, u32, u32);
+			u32 (*width)(surface_id);
+			u32 (*height)(surface_id);
+			void (*render)(surface_id);
+		} surface;
 	};
 }
 
