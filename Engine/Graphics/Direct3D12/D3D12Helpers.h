@@ -13,6 +13,168 @@ namespace primal::graphics::d3d12::d3dx {
 	}heap_properties;
 
 
+	constexpr struct {
+		const D3D12_RASTERIZER_DESC no_cull{
+			D3D12_FILL_MODE_SOLID,								//D3D12_FILL_MODE FillMode;
+			D3D12_CULL_MODE_NONE,								//D3D12_CULL_MODE CullMode; 不剔除
+			0,													//BOOL FrontCounterClockwise;
+			0,													//INT DepthBias;
+			0,													//FLOAT DepthBiasClamp;
+			0,													//FLOAT SlopeScaledDepthBias;
+			1,													//BOOL DepthClipEnable;
+			1,													//BOOL MultisampleEnable;
+			0,													//BOOL AntialiasedLineEnable;
+			0,													//UINT ForcedSampleCount;
+			D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF			//D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+		};
+		const D3D12_RASTERIZER_DESC backface_cull{
+			D3D12_FILL_MODE_SOLID,								//D3D12_FILL_MODE FillMode;
+			D3D12_CULL_MODE_BACK,								//D3D12_CULL_MODE CullMode; 不剔除
+			0,													//BOOL FrontCounterClockwise;
+			0,													//INT DepthBias;
+			0,													//FLOAT DepthBiasClamp;
+			0,													//FLOAT SlopeScaledDepthBias;
+			1,													//BOOL DepthClipEnable;
+			1,													//BOOL MultisampleEnable;
+			0,													//BOOL AntialiasedLineEnable;
+			0,													//UINT ForcedSampleCount;
+			D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF			//D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+		};
+		const D3D12_RASTERIZER_DESC frontface_cull{
+			D3D12_FILL_MODE_SOLID,								//D3D12_FILL_MODE FillMode;
+			D3D12_CULL_MODE_FRONT,								//D3D12_CULL_MODE CullMode; 不剔除
+			0,													//BOOL FrontCounterClockwise;
+			0,													//INT DepthBias;
+			0,													//FLOAT DepthBiasClamp;
+			0,													//FLOAT SlopeScaledDepthBias;
+			1,													//BOOL DepthClipEnable;
+			1,													//BOOL MultisampleEnable;
+			0,													//BOOL AntialiasedLineEnable;
+			0,													//UINT ForcedSampleCount;
+			D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF			//D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+		};
+		const D3D12_RASTERIZER_DESC wireframe{
+			D3D12_FILL_MODE_WIREFRAME,							//D3D12_FILL_MODE FillMode;
+			D3D12_CULL_MODE_NONE,								//D3D12_CULL_MODE CullMode; 不剔除
+			0,													//BOOL FrontCounterClockwise;
+			0,													//INT DepthBias;
+			0,													//FLOAT DepthBiasClamp;
+			0,													//FLOAT SlopeScaledDepthBias;
+			1,													//BOOL DepthClipEnable;
+			1,													//BOOL MultisampleEnable;
+			0,													//BOOL AntialiasedLineEnable;
+			0,													//UINT ForcedSampleCount;
+			D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF			//D3D12_CONSERVATIVE_RASTERIZATION_MODE ConservativeRaster;
+		};
+	}rasterizer_state;	//光栅状态
+
+
+	constexpr struct {
+		const D3D12_DEPTH_STENCIL_DESC1	disabled{
+			0,													//BOOL DepthEnable;
+			D3D12_DEPTH_WRITE_MASK_ZERO,						//D3D12_DEPTH_WRITE_MASK DepthWriteMask;
+			D3D12_COMPARISON_FUNC_LESS_EQUAL,					//D3D12_COMPARISON_FUNC DepthFunc;
+			0,													//BOOL StencilEnable;
+			0,													//UINT8 StencilWriteMask;
+			0,													//UINT8 StencilReadMask;
+			{},													//D3D12_DEPTH_STENCILOP_DESC FrontFace;
+			{},													//D3D12_DEPTH_STENCILOP_DESC BackFace;
+			0													//BOOL DepthBoundsTestEnable;
+		};
+	}depth_state;	// 深度状态
+
+	/// <summary>
+	/// 资源同步屏障
+	/// </summary>
+	class d3d12_resource_barrier {
+	public:
+		constexpr static u32						max_resource_barriers{ 32 };
+
+		/// <summary>
+		/// 添加一个transition barrier 到barrier list里
+		/// </summary>
+		/// <param name="resource"></param>
+		/// <param name="before"></param>
+		/// <param name="after"></param>
+		/// <param name="flags"></param>
+		/// <param name="subresource"></param>
+		constexpr void add(
+			ID3D12Resource* resource,
+			D3D12_RESOURCE_STATES before,
+			D3D12_RESOURCE_STATES after,
+			D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+			u32 subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
+			assert(resource);
+			assert(_offset < max_resource_barriers);
+			D3D12_RESOURCE_BARRIER& barrier{_barriers[_offset]};
+			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			barrier.Flags = flags;
+			barrier.Transition.pResource = resource;
+			barrier.Transition.StateBefore = before;
+			barrier.Transition.StateAfter = after;
+			barrier.Transition.Subresource = subresource;
+			++_offset;
+		}
+
+		/// <summary>
+		/// 添加一个uav barrier【特殊transition barrier】
+		/// </summary>
+		/// <param name="resource"></param>
+		/// <param name="flags"></param>
+		constexpr void add(
+			ID3D12Resource* resource,
+			D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE) {
+			assert(resource);
+			assert(_offset < max_resource_barriers);
+			D3D12_RESOURCE_BARRIER& barrier{ _barriers[_offset] };
+			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+			barrier.Flags = flags;
+			barrier.UAV.pResource = resource;
+			++_offset;
+		}
+
+		/// <summary>
+		/// 添加一个aliasing barrier 【混叠】
+		/// </summary>
+		/// <param name="resource"></param>
+		/// <param name="flags"></param>
+		constexpr void add(
+			ID3D12Resource* resource_before,
+			ID3D12Resource* resource_after,
+			D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE) {
+			assert(resource_before);
+			assert(resource_after);
+			assert(_offset < max_resource_barriers);
+			D3D12_RESOURCE_BARRIER& barrier{ _barriers[_offset] };
+			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+			barrier.Flags = flags;
+			barrier.Aliasing.pResourceBefore = resource_before;
+			barrier.Aliasing.pResourceAfter = resource_after;
+			++_offset;
+		}
+
+		void apply(id3d12_graphics_command_list* cmd_list) {
+			assert(_offset);
+			cmd_list->ResourceBarrier(_offset, _barriers);
+			_offset = 0;
+		}
+	private:
+		D3D12_RESOURCE_BARRIER						_barriers[max_resource_barriers]{};	//所有的屏障数组
+		u32											_offset{ 0 };	//偏移量，实际上就是内部现在所有的barrier数量，每加一次都加1，在调用applay()后重置
+	};
+
+	/// <summary>
+	/// 根据参数建立一个资源屏障并立即同步
+	/// </summary>
+	void transition_resource(
+		id3d12_graphics_command_list* cmd_list,
+		ID3D12Resource* resource,
+		D3D12_RESOURCE_STATES before,
+		D3D12_RESOURCE_STATES after,
+		D3D12_RESOURCE_BARRIER_FLAGS flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+		u32 subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES);
+
+
 	ID3D12RootSignature* create_root_signature(const D3D12_ROOT_SIGNATURE_DESC1& desc);
 
 
@@ -64,7 +226,6 @@ namespace primal::graphics::d3d12::d3dx {
 			u32 shader_register, u32 space = 0,
 			D3D12_ROOT_DESCRIPTOR_FLAGS flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE) {
 			as_descriptor(D3D12_ROOT_PARAMETER_TYPE_UAV, visibility, shader_register, space, flags);
-
 		}
 
 		/// <summary>
@@ -120,7 +281,8 @@ namespace primal::graphics::d3d12::d3dx {
 		}
 	};
 
-
+#pragma warning(push)
+#pragma warning(disable : 4324)	// disable padding warning
 	template <D3D12_PIPELINE_STATE_SUBOBJECT_TYPE type, typename T>
 	class alignas(void*)  d3d12_pipeline_state_subobject {
 	public:
@@ -134,6 +296,7 @@ namespace primal::graphics::d3d12::d3dx {
 		const D3D12_PIPELINE_STATE_SUBOBJECT_TYPE _type{ type };
 		T	_subobject{};
 	};
+#pragma warning(pop)
 
 	//pipeline state subobject
 #define PSS(name, ...) using d3d12_pipeline_state_subobject_##name = d3d12_pipeline_state_subobject<__VA_ARGS__>;
@@ -147,7 +310,7 @@ namespace primal::graphics::d3d12::d3dx {
 	PSS(stream_output, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_STREAM_OUTPUT, D3D12_STREAM_OUTPUT_DESC);
 	PSS(blend, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND, D3D12_BLEND_DESC);
 	PSS(sample_mask, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK, u32);
-	PSS(RASTERIZER, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, D3D12_RASTERIZER_DESC);
+	PSS(rasterizer, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER, D3D12_RASTERIZER_DESC);
 	PSS(depth_stencil, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL, D3D12_DEPTH_STENCIL_DESC);
 	PSS(input_layout, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT, D3D12_INPUT_LAYOUT_DESC);
 	PSS(ib_strip_cut_value, D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE, D3D12_INDEX_BUFFER_STRIP_CUT_VALUE);

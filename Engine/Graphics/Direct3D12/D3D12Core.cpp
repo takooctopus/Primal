@@ -2,6 +2,7 @@
 #include "D3D12CommonHeaders.h"
 #include "D3D12Surface.h"
 #include "D3D12Shaders.h"
+#include "D3D12GPass.h"
 
 using namespace Microsoft::WRL;
 
@@ -78,10 +79,12 @@ namespace primal::graphics::d3d12::core {
 			/// <summary>
 			/// singnal the fence with the new fence value
 			/// </summary>
-			void end_frame() {
+			void end_frame(const d3d12_surface& surface) {
 				DXCall(_cmd_list->Close());
 				ID3D12CommandList* const cmd_lists[]{ _cmd_list };	//常指针， 只能指向_cmd_list
 				_cmd_queue->ExecuteCommandLists(_countof(cmd_lists), &cmd_lists[0]);	//处理所有的cmd
+
+				surface.present();
 
 				u64& fence_value{ _fence_value };	//引用获取当前的栅栏值
 				++fence_value;	//因为完成了一帧，计数加1
@@ -174,6 +177,7 @@ namespace primal::graphics::d3d12::core {
 		IDXGIFactory7*								dxgi_factory{ nullptr };	// 【static】工厂指针
 		d3d12_command								gfx_command;	//【static】d3d12指令 
 		surface_collection							surfaces;	//【static】表面数组【调用create_surface就添加到这里面】
+		d3dx::d3d12_resource_barrier				resource_barriers{};	//【static】同步用围栏数组
 
 		descriptor_heap								rtv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_RTV };	//【static】渲染目标缓冲区描述符
 		descriptor_heap								dsv_desc_heap{ D3D12_DESCRIPTOR_HEAP_TYPE_DSV };	//【static】深度模板缓冲区描述符
@@ -345,9 +349,9 @@ namespace primal::graphics::d3d12::core {
 		if (!gfx_command.command_queue()) return failed_init();
 
 		// shutdown modules
-		if (!shaders::initialize()) {
-			return failed_init();
-		}
+		if (!shaders::initialize()) return failed_init();
+		if (!gpass::initialize()) return failed_init();
+
 
 		NAME_D3D12_OBJECT(main_device, L"MAIN DEVICE");
 		NAME_D3D12_OBJECT(rtv_desc_heap.heap(), L"RTV Descriptor Heap");
@@ -369,10 +373,11 @@ namespace primal::graphics::d3d12::core {
 		for (u32 i{ 0 }; i < frame_buffer_count; ++i) {
 			process_deferred_releases(i);
 		}
-		
+
 		// initialize modules
+		gpass::shutdown();
 		shaders::shutdown();
-		
+
 		release(dxgi_factory);
 
 		// 一些模组会在其关闭时释放描述符,得多用一次process_deferred_free()
@@ -465,6 +470,7 @@ namespace primal::graphics::d3d12::core {
 	{
 		return surfaces[id].height();
 	}
+
 	void render_surface(surface_id id)
 	{
 		// 等待gpu完成command allocator
@@ -479,14 +485,56 @@ namespace primal::graphics::d3d12::core {
 			process_deferred_releases(frame_idx);
 		}
 
-		const d3d12_surface& surface{ surfaces[id] };
-		surface.present();
+		const d3d12_surface& surface{ surfaces[id] };	// 引用获取当前表面
+
+		ID3D12Resource* const current_back_buffer{ surface.back_buffer() };	//引用获取当前表面的后备缓冲
+
+		d3d12_frame_info frame_info{
+			surface.width(),
+			surface.height()
+		};	//帧信息
+		gpass::set_size({ frame_info.surface_width , frame_info.surface_height });	// 设置gpass的长宽信息
+		d3dx::d3d12_resource_barrier& barriers{ resource_barriers };	//引用获取当前的资源屏障列表类
+
 
 		//记录操作
 		//....
+		cmd_list->RSSetViewports(1, &surface.viewport());	// 设置视点
+		cmd_list->RSSetScissorRects(1, &surface.scissor_rect());	//设置视框
+		// depth prepass
+		gpass::add_transitions_for_depth_prepass(barriers);	// 为深度缓冲添加一个屏障到屏障列表
+		barriers.apply(cmd_list);	//同步到屏障
+		gpass::set_render_targets_for_depth_prepass(cmd_list);	// 为主场景纹理缓冲添加一个屏障
+		
+		gpass::depth_prepass(cmd_list, frame_info);	//预处理
+
+		//geometry and lighting pass
+		gpass::add_transitions_for_gpass(barriers);
+		barriers.apply(cmd_list);
+		gpass::set_render_targets_for_gpass(cmd_list);
+		gpass::render(cmd_list, frame_info);
+
+		d3dx::transition_resource(
+			cmd_list,
+			current_back_buffer,	
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+		//post-process
+		//会写到当前的back buffer【后备缓冲】, 所以back buffer就是 render target
+		gpass::add_transitions_for_post_process(barriers);
+		barriers.apply(cmd_list);
+
+		//after post process
+		d3dx::transition_resource(
+			cmd_list,
+			current_back_buffer,	//直接使用后备缓冲
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PRESENT);
+
+
 		//完成记录， 执行
 		//通知下一帧并将fence_index加一
-		gfx_command.end_frame();
+		gfx_command.end_frame(surface);
 	}
 
 }
