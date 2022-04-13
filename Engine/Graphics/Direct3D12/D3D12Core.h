@@ -52,7 +52,7 @@ namespace primal::graphics::d3d12::core {
 	/// 返回device
 	/// </summary>
 	[[nodiscard]]
-	ID3D12Device8* const device();
+	id3d12_device* const device();
 	
 	[[nodiscard]]
 	descriptor_heap& rtv_heap();
@@ -65,9 +65,6 @@ namespace primal::graphics::d3d12::core {
 
 	[[nodiscard]]
 	descriptor_heap& uav_heap();
-
-	[[nodiscard]]
-	DXGI_FORMAT	default_render_target_format();
 
 	/// <summary>
 	/// 当前frame的index

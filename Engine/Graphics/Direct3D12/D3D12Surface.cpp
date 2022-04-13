@@ -19,8 +19,9 @@ namespace primal::graphics::d3d12 {
 		if (SUCCEEDED(factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &_allow_tearing, sizeof(u32))) && _allow_tearing) {
 			_present_flags = DXGI_PRESENT_ALLOW_TEARING;
 		}
-
 		_allow_tearing = _present_flags = 0;
+
+		_format = format;
 
 		DXGI_SWAP_CHAIN_DESC1 desc{};	//交换链描述信息
 		desc.AlphaMode = DXGI_ALPHA_MODE_UNSPECIFIED;
@@ -71,7 +72,7 @@ namespace primal::graphics::d3d12 {
 			assert(!data.resource);
 			DXCall(_swap_chain->GetBuffer(i, IID_PPV_ARGS(&data.resource)));	//为交换链每部分创建buffer
 			D3D12_RENDER_TARGET_VIEW_DESC desc{};
-			desc.Format = core::default_render_target_format();
+			desc.Format = _format;
 			desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 			core::device()->CreateRenderTargetView(data.resource, &desc, data.rtv.cpu);
 		}

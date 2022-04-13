@@ -12,6 +12,8 @@
 
 namespace primal::graphics::d3d12 {
 	constexpr u32 frame_buffer_count{ 3 };	//设定的最大帧数
+	using id3d12_device = ID3D12Device8;
+	using id3d12_graphics_command_list = ID3D12GraphicsCommandList6;
 }
 
 
