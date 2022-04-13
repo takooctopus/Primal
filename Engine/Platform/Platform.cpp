@@ -29,7 +29,7 @@ namespace primal::platform {
 		/// <returns></returns>
 		[[nodiscard]]
 		window_info& get_from_id(window_id id) {
-			assert(id < windows.size());
+			assert(id < windows.capacity());	//这里不该小于size的，毕竟移除一个窗口size就减了1，但是id又不变
 			assert(windows[id].hwnd);
 			return(windows[id]);
 		}
