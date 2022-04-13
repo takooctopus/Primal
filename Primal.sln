@@ -27,6 +27,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ContentTools", "ContentTool
 		{03256A24-95B3-448D-B838-B93A0BDB2FE8} = {03256A24-95B3-448D-B838-B93A0BDB2FE8}
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{1AFE156A-D6D9-49D1-BCCC-C2DA6B35C271}"
+	ProjectSection(SolutionItems) = preProject
+		GetDXC.ps1 = GetDXC.ps1
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64

@@ -1,6 +1,5 @@
 #pragma once
 #include "D3D12CommonHeaders.h"
-#include "D3D12Resources.h"
 
 namespace primal::graphics::d3d12 {
 	class d3d12_surface {
@@ -37,7 +36,7 @@ namespace primal::graphics::d3d12 {
 
 		~d3d12_surface() { release(); }
 
-		void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* cmd_queue, DXGI_FORMAT format/* = default_back_buffer_format*/);
+		void create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* cmd_queue, DXGI_FORMAT format = default_back_buffer_format);
 		void present() const;
 		void resize(u32 width, u32 height);
 

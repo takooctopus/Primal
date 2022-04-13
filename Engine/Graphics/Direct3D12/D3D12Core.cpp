@@ -1,8 +1,7 @@
 #include "D3D12Core.h"
 #include "D3D12CommonHeaders.h"
-#include "D3D12Resources.h"
 #include "D3D12Surface.h"
-#include "D3D12Helpers.h"
+#include "D3D12Shaders.h"
 
 using namespace Microsoft::WRL;
 
@@ -185,7 +184,6 @@ namespace primal::graphics::d3d12::core {
 		std::mutex									deferred_releases_mutex{};	// 【static】 互斥量
 
 
-		constexpr DXGI_FORMAT render_target_format{ DXGI_FORMAT_B8G8R8A8_UNORM_SRGB };	// 现在先用着srgb
 		constexpr D3D_FEATURE_LEVEL minimum_feature_level{ D3D_FEATURE_LEVEL_11_0 };	//【static】 支持特性的最小版本
 
 
@@ -345,6 +343,12 @@ namespace primal::graphics::d3d12::core {
 
 		new (&gfx_command) d3d12_command(main_device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 		if (!gfx_command.command_queue()) return failed_init();
+
+		// shutdown modules
+		if (!shaders::initialize()) {
+			return failed_init();
+		}
+
 		NAME_D3D12_OBJECT(main_device, L"MAIN DEVICE");
 		NAME_D3D12_OBJECT(rtv_desc_heap.heap(), L"RTV Descriptor Heap");
 		NAME_D3D12_OBJECT(dsv_desc_heap.heap(), L"DSV Descriptor Heap");
@@ -365,8 +369,17 @@ namespace primal::graphics::d3d12::core {
 		for (u32 i{ 0 }; i < frame_buffer_count; ++i) {
 			process_deferred_releases(i);
 		}
-
+		
+		// initialize modules
+		shaders::shutdown();
+		
 		release(dxgi_factory);
+
+		// 一些模组会在其关闭时释放描述符,得多用一次process_deferred_free()
+		rtv_desc_heap.process_deferred_free(0);
+		dsv_desc_heap.process_deferred_free(0);
+		srv_desc_heap.process_deferred_free(0);
+		uav_desc_heap.process_deferred_free(0);
 
 		rtv_desc_heap.release();
 		dsv_desc_heap.release();
@@ -375,6 +388,7 @@ namespace primal::graphics::d3d12::core {
 
 		// 某些资源在它们shutdown/reset/clear时要用deferred release，我们再调用一次去真正地清理
 		process_deferred_releases(0);
+
 
 #ifdef _DEBUG
 		{
@@ -430,7 +444,7 @@ namespace primal::graphics::d3d12::core {
 	surface create_surface(platform::window window)
 	{
 		surface_id id{ surfaces.add(window) }; //传入窗口初始化一个d3d12_surface并加入surfaces数组中
-		surfaces[id].create_swap_chain(dxgi_factory, gfx_command.command_queue(), render_target_format);
+		surfaces[id].create_swap_chain(dxgi_factory, gfx_command.command_queue());
 		return surface{ id };
 	}
 	void remove_surface(surface_id id)

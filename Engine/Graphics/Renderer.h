@@ -94,6 +94,17 @@ namespace primal::graphics {
 	/// </summary>
 	void render();
 
+	/// <summary>
+	/// 【上层】获取引擎着色器路径
+	/// </summary>
+	/// <returns></returns>
+	const char* get_engine_shaders_path();
+
+	/// <summary>
+	/// 【上层】获取下层特定引擎着色器路径
+	/// </summary>
+	/// <returns></returns>
+	const char* get_engine_shaders_path(graphics_platform platform);
 
 	/// <summary>
 	/// 通过窗口创建一个表面
@@ -104,4 +115,6 @@ namespace primal::graphics {
 	surface create_surface(platform::window window);
 
 	void remove_surface(surface_id id);
+
+
 }

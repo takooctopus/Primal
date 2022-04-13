@@ -5,13 +5,13 @@ namespace primal::graphics::d3d12 {
 	namespace {
 
 		constexpr DXGI_FORMAT to_non_srgb(DXGI_FORMAT format) {
-			if (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB) return DXGI_FORMAT_B8G8R8A8_UNORM;
+			if (format == DXGI_FORMAT_R8G8B8A8_UNORM_SRGB) return DXGI_FORMAT_R8G8B8A8_UNORM;
 			return format;
 		}
 
 	}// anonymous namespace
 
-	void d3d12_surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* cmd_queue, DXGI_FORMAT format)
+	void d3d12_surface::create_swap_chain(IDXGIFactory7* factory, ID3D12CommandQueue* cmd_queue, DXGI_FORMAT format /*= default_back_buffer_format*/)
 	{
 		assert(factory && cmd_queue);
 		release();
