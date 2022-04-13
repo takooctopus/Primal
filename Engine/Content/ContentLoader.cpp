@@ -24,7 +24,7 @@ namespace primal::content {
 		transform::init_info transform_info{};
 		script::init_info script_info{};
 
-		
+
 		/// <summary>
 		/// 读取坐标变换，输入一个u8的指针地址，和一个init_info初始化信息结构体
 		/// </summary>
@@ -36,11 +36,11 @@ namespace primal::content {
 			using namespace DirectX;
 			// 要注意在引擎中rotation是vector[4]，外部是[vector3]所以要中转一下
 			f32 rotation[3];
-		
+
 			assert(!info.transform);
-			memcpy(&transform_info.position[0], data, sizeof(transform_info.position)); data += sizeof(transform_info.position); 
+			memcpy(&transform_info.position[0], data, sizeof(transform_info.position)); data += sizeof(transform_info.position);
 			memcpy(&rotation[0], data, sizeof(rotation)); data += sizeof(rotation);
-			memcpy(&transform_info.scale[0], data, sizeof(transform_info.scale)); data += sizeof(transform_info.scale); 
+			memcpy(&transform_info.scale[0], data, sizeof(transform_info.scale)); data += sizeof(transform_info.scale);
 
 			XMFLOAT3A rot{ &rotation[0] };
 			XMVECTOR quat{ XMQuaternionRotationRollPitchYawFromVector(XMLoadFloat3A(&rot)) };
@@ -73,7 +73,7 @@ namespace primal::content {
 			info.script = &script_info;
 			return script_info.script_creator != nullptr;
 		}
-		
+
 
 		/// <summary>
 		/// 函数指针，(外部数据地址，游戏实体初始化结构体)
@@ -84,10 +84,27 @@ namespace primal::content {
 			read_transform,
 			read_script
 		};
-		
+
 		static_assert(_countof(component_readers) == component_type::count);
-	
+
+		bool read_file(std::filesystem::path path, std::unique_ptr<u8[]>& data, u64& size) {
+			if (!std::filesystem::exists(path)) return false;
+			size = std::filesystem::file_size(path);
+			assert(size);
+			if (!size) return false;
+			data = std::make_unique<u8[]>(size);
+			std::ifstream file{ path, std::ios::in | std::ios::binary };
+			if (!file || !file.read((char*)data.get(), size)) {
+				file.close();
+				return false;
+			}
+			file.close();
+			return true;
+		}
+
+
 	}//匿名namespace
+
 
 	/// <summary>
 	/// 读取C#中生成的game.bin 并创建对应实体
@@ -96,26 +113,24 @@ namespace primal::content {
 	[[nodiscard]]
 	bool load_game()
 	{
-		//设定我们的工作目录到当前程序执行位置
-		{
-			wchar_t path[MAX_PATH];
-			// 获取exe现在的执行目录[${ProjectDir}\${projectName}\x64\Debug\${projectName.exe}]
-			const u32 length{ GetModuleFileName(0, &path[0], MAX_PATH) };
-			// 要是长度超了，毁灭吧
-			if (!length || GetLastError() == ERROR_INSUFFICIENT_BUFFER) return false;
-			std::filesystem::path p{ path };
-			// 将工作目录设置到Debug[或者Release]那一层
-			SetCurrentDirectory(p.parent_path().wstring().c_str());
-		}
 
-		//注意我们的工作目录
-		std::ifstream game{ "game.bin", std::ios::in | std::ios::binary };
-		utl::vector<u8> buffer{ std::istreambuf_iterator<char>(game),{} };
-		assert(buffer.size());
-		const u8* at{ buffer.data() };
+		//std::ifstream game{ "game.bin", std::ios::in | std::ios::binary };
+		//utl::vector<u8> buffer{ std::istreambuf_iterator<char>(game),{} };
+		//assert(buffer.size());
+		//const u8* at{ buffer.data() };
+		//const u32 su32{ sizeof(u32) };
+		//const u32 num_entities{ *at }; at += su32;
+		//if (!num_entities) return false;
+
+		std::unique_ptr<u8[]> game_data{};
+		u64 size{ 0 };
+		if (!read_file("game.bin", game_data, size)) return false;
+		assert(game_data.get());
+		const u8* at{ game_data.get() };
 		const u32 su32{ sizeof(u32) };
 		const u32 num_entities{ *at }; at += su32;
 		if (!num_entities) return false;
+
 		for (u32 entity_index{ 0 }; entity_index < num_entities; ++entity_index) {
 			game_entity::entity_info info{};
 			const u32 entity_type{ *at }; at += su32;
@@ -131,11 +146,11 @@ namespace primal::content {
 			assert(info.transform);
 			game_entity::entity entity{ game_entity::create(info) };
 			if (!entity.is_valid()) return false;
-			
+
 			entities.emplace_back(entity);
 		}
 		// 最后断言我们刚好读到所有字节
-		assert(at == buffer.data() + buffer.size()); 
+		assert(at == game_data.get() + size);
 		return true;
 	}
 

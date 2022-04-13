@@ -13,17 +13,10 @@ namespace primal::utl {
 			resize(count, value);
 		}
 
-		template <typename it, typename = std::enable_if_t<std::_Is_iterator_v<it>>>
-		constexpr explicit vector(it first, it last) {
-			for (; first != last; ++first) {
-				emplace_back(*first);
-			}
-		}
-
 		constexpr vector(const vector& o) {
 			*this = o;
 		}
-		constexpr vector(const vector&& o)
+		constexpr vector(vector&& o)
 			: _capacity(o._capacity), _size(o._size), _data{ o._data }{
 			o.reset();
 		}
@@ -104,7 +97,7 @@ namespace primal::utl {
 		/// </summary>
 		/// <param name="new_size"></param>
 		constexpr void resize(u64 new_size) {
-			static_assert(std::is_default_constructible_v<T>, "Type must be default constructible.");	//就像std::vector一样，resize是要实际分配空间的
+			static_assert(std::is_default_constructible<T>::value, "Type must be default constructible.");	//就像std::vector一样，resize是要实际分配空间的
 			if (new_size > _size) {
 				reserve(new_size);
 				while (_size < new_size) {
@@ -125,7 +118,7 @@ namespace primal::utl {
 		/// </summary>
 		/// <param name="new_size"></param>
 		constexpr void resize(u64 new_size, const T& value) {
-			static_assert(std::is_copy_constructible_v<T>, "Type must be copy constructible.");	//就像std::vector一样，resize是要实际分配空间的
+			static_assert(std::is_copy_constructible<T>::value, "Type must be copy constructible.");	//就像std::vector一样，resize是要实际分配空间的
 			if (new_size > _size) {
 				reserve(new_size);
 				while (_size < new_size) {
@@ -223,7 +216,7 @@ namespace primal::utl {
 		constexpr void swap(vector& o) {
 			if (this != std::addressof(o)) {
 				auto temp(std::move(o));
-				o.move(* this);
+				o.move(*this);
 				move(temp);
 			}
 		}
@@ -299,25 +292,25 @@ namespace primal::utl {
 
 		[[nodiscard]]
 		constexpr T* begin() {
-			assert(_data);
+			//assert(_data);
 			return std::addressof(_data[0]);
 		}
 
 		[[nodiscard]]
 		constexpr T* const begin() const {
-			assert(_data);
+			//assert(_data);
 			return std::addressof(_data[0]);
 		}
 
 		[[nodiscard]]
 		constexpr T* end() {
-			assert(_data);
+			//assert(_data);
 			return std::addressof(_data[_size]);
 		}
 
 		[[nodiscard]]
 		constexpr T* const end() const {
-			assert(_data);
+			//assert(_data);
 			return std::addressof(_data[_size]);
 		}
 
