@@ -68,6 +68,8 @@
 	  <Compile Include="Components\Script.cs" />
 	  <Compile Include="Components\Transform.cs" />
 	  <Compile Include="Content\Asset.cs" />
+	  <Compile Include="Content\AssetRegistry.cs" />
+	  <Compile Include="Content\ContentBrowser\ContentBrowserView.xaml.cs" />
 	  <Compile Include="Content\Geometry.cs" />
 	  <Compile Include="Content\PrimitiveMeshDialog.xaml.cs" />
 	  <Compile Include="Dictionaries\ControlTemplates.xaml.cs" />
@@ -208,6 +210,9 @@
 	</ItemGroup>
 	<ItemGroup>
 	  <Page Include="App.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </Page>
+	  <Page Include="Content\ContentBrowser\ContentBrowserView.xaml">
 	    <Generator>MSBuild:Compile</Generator>
 	  </Page>
 	  <Page Include="Content\PrimitiveMeshDialog.xaml">
