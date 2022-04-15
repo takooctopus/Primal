@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
+using System.Text.RegularExpressions;
 //using System.Text;
 //using System.Threading.Tasks;
 
@@ -64,7 +65,7 @@ namespace PrimalEditor.GameProject
             }
         }
 
-        private ObservableCollection<ProjectTemplate> _projectTemplates = new ObservableCollection<ProjectTemplate>();
+        private readonly ObservableCollection<ProjectTemplate> _projectTemplates = new ObservableCollection<ProjectTemplate>();
         public ReadOnlyObservableCollection<ProjectTemplate> ProjectTemplates { get; }
 
         private bool _isValid;
@@ -101,13 +102,14 @@ namespace PrimalEditor.GameProject
                 path += @"\";
             }
             path += $@"{ProjectName}\";
+            var nameRegex = new Regex(@"^[A-Za-z_][A-Za-z0-9_]*$");
 
             IsValid = false;
             if (string.IsNullOrEmpty(ProjectName.Trim()))
             {
                 ErrorMsg = "Type in a project name !";
             }
-            else if (ProjectName.IndexOfAny(Path.GetInvalidFileNameChars()) != -1)
+            else if (!nameRegex.IsMatch(ProjectName.Trim()))
             {
                 ErrorMsg = "Invalid character(s) in project name !";
             }
@@ -190,7 +192,7 @@ namespace PrimalEditor.GameProject
             Debug.Assert(File.Exists(Path.Combine(template.TemplatePath, "MSVCProject")));
 
             // TODO: 现在暂时使用MainWindow.PrimalPath，以后会改成安装位置
-            var engineAPIPath = Path.Combine(MainWindow.PrimalPath, @"Engine\EngineAPI");
+            var engineAPIPath = @"$(PRIMAL_ENGINE)Engine\EngineAPI";
             Debug.Assert(Directory.Exists(engineAPIPath));
 
             // MSCVC工程文件的XML模板中的变量位置，反正就是三个，重新format呗
@@ -202,7 +204,7 @@ namespace PrimalEditor.GameProject
             File.WriteAllText(Path.GetFullPath(Path.Combine(projectPath, $"{_0}.sln")), solution);
 
             var _2 = engineAPIPath;
-            var _3 = MainWindow.PrimalPath;
+            var _3 = @"$(PRIMAL_ENGINE)";
             var project = File.ReadAllText(Path.Combine(template.TemplatePath, "MSVCProject"));
             project = String.Format(project, _0, _1, _2, _3);
             // 最后写到新建项目的MSVC工程文件里

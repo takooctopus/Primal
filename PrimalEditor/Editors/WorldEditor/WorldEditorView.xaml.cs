@@ -1,5 +1,6 @@
 ﻿using PrimalEditor.Content;
 using PrimalEditor.GameDev;
+using PrimalEditor.GameProject;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -41,6 +42,26 @@ namespace PrimalEditor.Editors
         {
             var dlg = new PrimitiveMeshDialog();
             dlg.ShowDialog();
+        }
+
+        private void onNewProject(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            ProjectBrowserDialog.GotoNewProjectTab = true;
+            Project.Current?.Unload();
+            Application.Current.MainWindow.DataContext = null;
+            Application.Current.MainWindow.Close();
+        }
+
+        private void onOpenProject(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            Project.Current?.Unload();
+            Application.Current.MainWindow.DataContext = null;
+            Application.Current.MainWindow.Close();
+        }
+
+        private void onEditorClose(object sender, System.Windows.Input.ExecutedRoutedEventArgs e)
+        {
+            Application.Current.MainWindow.Close();
         }
     }
 }

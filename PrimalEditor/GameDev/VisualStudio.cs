@@ -6,9 +6,18 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
+using System.Threading;
 
 namespace PrimalEditor.GameDev
 {
+    enum BuildConfiguration
+    {
+        Debug,
+        DebugEditor,
+        Release,
+        ReleaseEditor
+    }
+
     /// <summary>
     /// VisualStudio类，包装了打开vs实例的方法，说白了我们的界面是做操作的，编译的事情就交给VS去做吧
     /// </summary>
@@ -18,10 +27,31 @@ namespace PrimalEditor.GameDev
         /// 打开的VS实例，一个程序全局只有一个
         /// </summary>
         private static EnvDTE80.DTE2 _vsInstance = null;
+        private static ManualResetEventSlim _resetEvent = new ManualResetEventSlim(false);
         /// <summary>
         /// VS我们要的版本，这个就是VS2022，要是2019就是16.0，不考虑版本就删掉版本就是了
         /// </summary>
         private static readonly string _progID = "VisualStudio.DTE.17.0";
+        private static readonly object _lock = new object();
+
+
+        /// <summary>
+        /// 项目的参数
+        /// </summary>
+        private static readonly string[] _buildConfigurationNames = new string[]
+        {
+            "Debug",
+            "DebugEditor",
+            "Release",
+            "ReleaseEditor"
+        };
+
+        /// <summary>
+        /// 类函数用来获取编译配置
+        /// </summary>
+        /// <param name="config">The configuration.[enum]</param>
+        /// <returns></returns>
+        public static string GetConfigurationName(BuildConfiguration config) => _buildConfigurationNames[(int)config];
 
         /// <summary>
         /// 用来判断构建GameCode成功与否的标志量
@@ -32,6 +62,7 @@ namespace PrimalEditor.GameDev
         /// 用来判断构建GameCode与否结束的标志量
         /// </summary>
         public static bool BuildDone { get; private set; } = true;
+
 
         /// <summary>
         /// 从ole32.dll导入的方法：返回运行实例表
@@ -51,11 +82,32 @@ namespace PrimalEditor.GameDev
         [DllImport("ole32.dll")]
         private static extern int CreateBindCtx(uint reserved, out IBindCtx ppbc);
 
+        private static void CallOnSTATherad(Action action)
+        {
+            Debug.Assert(action != null);
+            var thread = new Thread(() =>
+            {
+                MessageFilter.Register();
+                try { action(); }
+                catch (Exception ex)
+                {
+                    Logger.Log(MessageType.Warning, ex.Message);
+                }
+                finally
+                {
+                    MessageFilter.Revoke();
+                }
+            });
+            thread.SetApartmentState(ApartmentState.STA);
+            thread.Start();
+            thread.Join();
+        }
+
         /// <summary>
         /// 怎么说呢，这个方法打开VS实例并绑定到我们的单例私有变量_vsInstance中
         /// </summary>
         /// <param name="solutionPath"></param>
-        public static void OpenVisualStudio(string solutionPath)
+        private static void OpenVisualStudio_Internal(string solutionPath)
         {
             IRunningObjectTable rot = null;
             IEnumMoniker monikerTable = null;
@@ -90,8 +142,11 @@ namespace PrimalEditor.GameDev
                                 throw new COMException($"Running object table's GetObject() returned HRESULT: {hResult:X8}");
                             // 把进程object转化成对应的DTE2对象
                             EnvDTE80.DTE2 dte = obj as EnvDTE80.DTE2;
-                            var solutionName = dte.Solution.FullName;
-
+                            var solutionName = string.Empty;
+                            CallOnSTATherad(() =>
+                            {
+                                solutionName = dte.Solution.FullName;
+                            });
 
                             // 我们对比一下这进程打开的解决方案的名称和我们新建脚本所属的解决方案是不是同一个，是的话就直接添加，不用再开一个VS窗口进程了
                             if (solutionName == solutionPath)
@@ -122,21 +177,43 @@ namespace PrimalEditor.GameDev
                 if (bindCtx != null) Marshal.ReleaseComObject(bindCtx);
             }
         }
+        public static void OpenVisualStudio(string solutionPath)
+        {
+            lock (_lock)
+            {
+                OpenVisualStudio_Internal(solutionPath);
+            }
+        }
+
 
         /// <summary>
         /// 关闭VS进程
         /// </summary>
+        private static void CloseVisualStudio_Internal()
+        {
+
+            CallOnSTATherad(() =>
+            {
+                if (_vsInstance?.Solution.IsOpen == true)
+                {
+                    // 先将工作区的所有文件保存了，然后关闭解决方案
+                    _vsInstance.ExecuteCommand("File.SaveAll");
+                    _vsInstance.Solution.Close(true);
+                }
+                // 退出进程
+                _vsInstance?.Quit();
+                _vsInstance = null;
+            });
+        }
         public static void CloseVisualStudio()
         {
-            if (_vsInstance?.Solution.IsOpen == true)
+            lock (_lock)
             {
-                // 先将工作区的所有文件保存了，然后关闭解决方案
-                _vsInstance.ExecuteCommand("File.SaveAll");
-                _vsInstance.Solution.Close(true);
+                CloseVisualStudio_Internal();
             }
-            // 退出进程
-            _vsInstance?.Quit();
+
         }
+
 
         /// <summary>
         /// 添加模板文件到解决方案的函数
@@ -145,41 +222,45 @@ namespace PrimalEditor.GameDev
         /// <param name="projectName">游戏项目名称</param>
         /// <param name="files">要放进去的文件名列表[是文件的全路径]</param>
         /// <returns></returns>
-        public static bool AddFilesToSolution(string solution, string projectName, string[] files)
+        private static bool AddFilesToSolution_Internal(string solution, string projectName, string[] files)
         {
             Debug.Assert(files?.Length > 0);
-            OpenVisualStudio(solution);
+            OpenVisualStudio_Internal(solution);
             try
             {
                 Debug.Assert(_vsInstance != null);
                 if (_vsInstance != null)
                 {
-                    if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(solution);
-                    else _vsInstance.ExecuteCommand("File.SaveAll");
-
-                    // 对_vsInstance解决方案的所有项目进行遍历
-                    foreach (EnvDTE.Project project in _vsInstance.Solution.Projects)
+                    CallOnSTATherad(() =>
                     {
-                        // 找到对应的项目文件名xxx.vcxproj，要是包含我们要的的项目名，就直接添加进project里
-                        if (project.UniqueName.Contains(projectName))
+
+                        if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(solution);
+                        else _vsInstance.ExecuteCommand("File.SaveAll");
+
+                        // 对_vsInstance解决方案的所有项目进行遍历
+                        foreach (EnvDTE.Project project in _vsInstance.Solution.Projects)
                         {
-                            foreach (var file in files)
+                            // 找到对应的项目文件名xxx.vcxproj，要是包含我们要的的项目名，就直接添加进project里
+                            if (project.UniqueName.Contains(projectName))
                             {
-                                //向项目中添加文件
-                                project.ProjectItems.AddFromFile(file);
+                                foreach (var file in files)
+                                {
+                                    //向项目中添加文件
+                                    project.ProjectItems.AddFromFile(file);
+                                }
                             }
                         }
-                    }
 
-                    // 为了方便查看，将打开加进去的cpp文件方便操作
-                    var cpp = files.FirstOrDefault(x => Path.GetExtension(x) == ".cpp");
-                    if (!string.IsNullOrEmpty(cpp))
-                    {
-                        // 注意这里因为没有interface界面，我们要将项目的Reference->EnvDTE->Embed Interop Type属性设置成false
-                        _vsInstance.ItemOperations.OpenFile(cpp, EnvDTE.Constants.vsViewKindTextView).Visible = true;
-                    }
-                    _vsInstance.MainWindow.Activate();
-                    _vsInstance.MainWindow.Visible = true;
+                        // 为了方便查看，将打开加进去的cpp文件方便操作
+                        var cpp = files.FirstOrDefault(x => Path.GetExtension(x) == ".cpp");
+                        if (!string.IsNullOrEmpty(cpp))
+                        {
+                            // 注意这里因为没有interface界面，我们要将项目的Reference->EnvDTE->Embed Interop Type属性设置成false
+                            _vsInstance.ItemOperations.OpenFile(cpp, EnvDTE.Constants.vsViewKindTextView).Visible = true;
+                        }
+                        _vsInstance.MainWindow.Activate();
+                        _vsInstance.MainWindow.Visible = true;
+                    });
                 }
             }
             catch (Exception ex)
@@ -190,6 +271,14 @@ namespace PrimalEditor.GameDev
             }
             return true;
         }
+        public static bool AddFilesToSolution(string solution, string projectName, string[] files)
+        {
+            lock (_lock)
+            {
+                return AddFilesToSolution_Internal(solution, projectName, files);
+            }
+        }
+
 
         /// <summary>
         /// 在VS构建Solution开始时的触发事件函数
@@ -200,6 +289,7 @@ namespace PrimalEditor.GameDev
         /// <param name="solutionConfig"></param>
         private static void OnBuildSolutionBegin(string project, string projectConfig, string platform, string solutionConfig)
         {
+            if (BuildDone) return;
             Logger.Log(MessageType.Info, $"Building {project}, {projectConfig}, {platform}, {solutionConfig}.");
         }
 
@@ -219,6 +309,7 @@ namespace PrimalEditor.GameDev
 
             BuildDone = true;
             BuildSuceeded = Success;
+            _resetEvent.Set();
         }
 
 
@@ -226,26 +317,22 @@ namespace PrimalEditor.GameDev
         /// 判断现在VS是否正在Debug运行实例
         /// </summary>
         /// <returns></returns>
-        public static bool IsDebugging()
+        private static bool IsDebugging_Internal()
         {
             bool result = false;
-            bool tryAgain = true;
-            for (int i = 0; i < 3 && tryAgain; i++)
+            CallOnSTATherad(() =>
             {
-                try
-                {
-                    result = _vsInstance != null
-                        && (_vsInstance.Debugger.CurrentProgram != null || _vsInstance.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgRunMode);
-                    tryAgain = false;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    System.Threading.Thread.Sleep(1000);
-                }
-                if (result) break;
-            }
+                result = _vsInstance != null && (_vsInstance.Debugger.CurrentProgram != null || _vsInstance.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgRunMode);
+
+            });
             return result;
+        }
+        public static bool IsDebugging()
+        {
+            lock (_lock)
+            {
+                return IsDebugging_Internal();
+            }
         }
 
         /// <summary>
@@ -255,68 +342,165 @@ namespace PrimalEditor.GameDev
         /// <param name="configName"></param>
         /// <param name="showWindow">[可选]是否结束后显示窗口</param>
         /// <exception cref="NotImplementedException"></exception>
-        public static void BuildSolution(Project project, string configName, bool showWindow = true)
+        private static void BuildSolution_Internal(Project project, BuildConfiguration buildConfig, bool showWindow = true)
         {
             // 先判断VS现在是否在DEBUG模式
-            if (IsDebugging())
+            if (IsDebugging_Internal())
             {
                 Logger.Log(MessageType.Error, "Visual Studio is currently running a process.");
                 return;
             }
-            OpenVisualStudio(project.Solution);
+            OpenVisualStudio_Internal(project.Solution);
             BuildDone = BuildSuceeded = false;
-
-            // TODO: 现在这个只是简易实现，最好还是用信息过滤器来实现忙碌信息
-            for (int i = 0; i < 3 && !BuildDone; i++)
+            CallOnSTATherad(() =>
             {
-                try
+                if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(project.Solution);
+                _vsInstance.MainWindow.Visible = showWindow;
+                _vsInstance.Events.BuildEvents.OnBuildProjConfigBegin += OnBuildSolutionBegin;
+                _vsInstance.Events.BuildEvents.OnBuildProjConfigDone += OnBuildSolutionDone;
+            });
+            var configName = GetConfigurationName(buildConfig);
+            try
+            {
+                foreach (var PdbFile in Directory.GetFiles(Path.Combine($"{project.Path}", $@"x64\{configName}"), "*.pdb"))
                 {
-                    if (!_vsInstance.Solution.IsOpen) _vsInstance.Solution.Open(project.Solution);
-                    _vsInstance.MainWindow.Visible = showWindow;
-
-                    _vsInstance.Events.BuildEvents.OnBuildProjConfigBegin += OnBuildSolutionBegin;
-                    _vsInstance.Events.BuildEvents.OnBuildProjConfigDone += OnBuildSolutionDone;
-
-                    try
-                    {
-                        foreach (var PdbFile in Directory.GetFiles(Path.Combine($"{project.Path}", $@"x64\{configName}"), "*.pdb"))
-                        {
-                            File.Delete(PdbFile);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex.Message);
-                    }
-
-                    _vsInstance.Solution.SolutionBuild.SolutionConfigurations.Item(configName).Activate();
-                    _vsInstance.ExecuteCommand("Build.BuildSolution");
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex.Message);
-                    Debug.WriteLine($"Attempt {i}: failed to build {project.Name} game code in VS");
-                    Logger.Log(MessageType.Error, "Building game code in Vs failed");
-                    System.Threading.Thread.Sleep(1000);
+                    File.Delete(PdbFile);
                 }
             }
-        }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+            CallOnSTATherad(() =>
+            {
+                _vsInstance.Solution.SolutionBuild.SolutionConfigurations.Item(configName).Activate();
+                _vsInstance.ExecuteCommand("Build.BuildSolution");
+                _resetEvent.Wait();
+                _resetEvent.Reset();
+            });
 
-        public static void Run(Project project, string configName, bool debug)
+        }
+        public static void BuildSolution(Project project, BuildConfiguration buildConfig, bool showWindow = true)
         {
-            if (_vsInstance != null && !IsDebugging() && BuildDone && BuildSuceeded)
+            lock (_lock)
             {
-                _vsInstance.ExecuteCommand(debug ? "Debug.Start" : "Debug.StartWithoutDebugging");
+                BuildSolution_Internal(project, buildConfig, showWindow);
             }
-
         }
 
+        private static void Run_Internal(Project project, BuildConfiguration buildConfig, bool debug)
+        {
+            CallOnSTATherad(() =>
+            {
+
+                if (_vsInstance != null && !IsDebugging_Internal() && BuildSuceeded)
+                {
+                    _vsInstance.ExecuteCommand(debug ? "Debug.Start" : "Debug.StartWithoutDebugging");
+                }
+            });
+
+        }
+        public static void Run(Project project, BuildConfiguration buildConfig, bool debug)
+        {
+            lock (_lock)
+            {
+                Run_Internal(project, buildConfig, debug);
+            }
+        }
+
+        private static void Stop_Internal()
+        {
+            CallOnSTATherad(() =>
+            {
+                if (_vsInstance != null && IsDebugging_Internal())
+                {
+                    _vsInstance.ExecuteCommand("Debug.StopDebugging");
+                }
+            });
+        }
         public static void Stop()
         {
-            if (_vsInstance != null && IsDebugging())
+            lock (_lock)
             {
-                _vsInstance.ExecuteCommand("Debug.StopDebugging");
+                Stop_Internal();
             }
         }
     }
+
+    [ComImport(), Guid("00000016-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IOleMessageFilter
+    {
+
+        [PreserveSig]
+        int HandleInComingCall(int dwCallType, IntPtr hTaskCaller, int dwTickCount, IntPtr lpInterfaceInfo);
+
+
+        [PreserveSig]
+        int RetryRejectedCall(IntPtr hTaskCallee, int dwTickCount, int dwRejectType);
+
+
+        [PreserveSig]
+        int MessagePending(IntPtr hTaskCallee, int dwTickCount, int dwPendingType);
+    }
+
+    public class MessageFilter : IOleMessageFilter
+    {
+        private const int SERVERCALL_ISHANDLED = 0;
+        private const int PENDINGMSG_WAITDEFPROCESS = 2;
+        private const int SERVERCALL_RETRYLATER = 2;
+        public static void Register()
+        {
+            IOleMessageFilter newFilter = new MessageFilter();
+            IOleMessageFilter oldFilter = null;
+            int hr = CoRegisterMessageFilter(newFilter, out oldFilter);
+            Debug.Assert(hr >= 0, "Registering COM IMessageFilter failed.");
+
+            if (hr != 0)
+            {
+                Console.WriteLine(string.Format("CoRegisterMessageFilter failed with error : {0}", hr));
+            }
+        }
+
+        public static void Revoke()
+        {
+            IOleMessageFilter oldFilter = null;
+            int hr = CoRegisterMessageFilter(null, out oldFilter);
+            Debug.Assert(hr >= 0, "Unregistering COM IMessageFilter failed.");
+        }
+
+        int IOleMessageFilter.HandleInComingCall(int dwCallType, System.IntPtr hTaskCaller, int dwTickCount, System.IntPtr lpInterfaceInfo)
+        {
+            //returns the flag SERVERCALL_ISHANDLED. 
+            return SERVERCALL_ISHANDLED;
+        }
+
+
+        int IOleMessageFilter.RetryRejectedCall(System.IntPtr hTaskCallee, int dwTickCount, int dwRejectType)
+        {
+            // Thread call was refused, try again. 
+            if (dwRejectType == SERVERCALL_RETRYLATER)
+            // flag = SERVERCALL_RETRYLATER. 
+            {
+                Debug.WriteLine("COM Server busy, retrying call to Env Interface");
+                // retry thread call at once, if return value >=0 & 
+                // <100. 
+                return 500;
+            }
+            // too busy, cancel call
+            return -1;
+        }
+
+
+        int IOleMessageFilter.MessagePending(System.IntPtr hTaskCallee, int dwTickCount, int dwPendingType)
+        {
+            //return flag PENDINGMSG_WAITDEFPROCESS. 
+            return PENDINGMSG_WAITDEFPROCESS;
+        }
+
+        // implement IOleMessageFilter interface. 
+        [DllImport("Ole32.dll")]
+        private static extern int CoRegisterMessageFilter(IOleMessageFilter newFilter, out IOleMessageFilter oldFilter);
+
+    }
 }
+
