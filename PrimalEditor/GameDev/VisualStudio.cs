@@ -428,7 +428,7 @@ namespace PrimalEditor.GameDev
     }
 
     [ComImport(), Guid("00000016-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-    interface IOleMessageFilter
+    interface IMessageFilter
     {
 
         [PreserveSig]
@@ -443,15 +443,15 @@ namespace PrimalEditor.GameDev
         int MessagePending(IntPtr hTaskCallee, int dwTickCount, int dwPendingType);
     }
 
-    public class MessageFilter : IOleMessageFilter
+    public class MessageFilter : IMessageFilter
     {
         private const int SERVERCALL_ISHANDLED = 0;
         private const int PENDINGMSG_WAITDEFPROCESS = 2;
         private const int SERVERCALL_RETRYLATER = 2;
         public static void Register()
         {
-            IOleMessageFilter newFilter = new MessageFilter();
-            IOleMessageFilter oldFilter = null;
+            IMessageFilter newFilter = new MessageFilter();
+            IMessageFilter oldFilter = null;
             int hr = CoRegisterMessageFilter(newFilter, out oldFilter);
             Debug.Assert(hr >= 0, "Registering COM IMessageFilter failed.");
 
@@ -463,19 +463,19 @@ namespace PrimalEditor.GameDev
 
         public static void Revoke()
         {
-            IOleMessageFilter oldFilter = null;
+            IMessageFilter oldFilter = null;
             int hr = CoRegisterMessageFilter(null, out oldFilter);
             Debug.Assert(hr >= 0, "Unregistering COM IMessageFilter failed.");
         }
 
-        int IOleMessageFilter.HandleInComingCall(int dwCallType, System.IntPtr hTaskCaller, int dwTickCount, System.IntPtr lpInterfaceInfo)
+        int IMessageFilter.HandleInComingCall(int dwCallType, System.IntPtr hTaskCaller, int dwTickCount, System.IntPtr lpInterfaceInfo)
         {
             //returns the flag SERVERCALL_ISHANDLED. 
             return SERVERCALL_ISHANDLED;
         }
 
 
-        int IOleMessageFilter.RetryRejectedCall(System.IntPtr hTaskCallee, int dwTickCount, int dwRejectType)
+        int IMessageFilter.RetryRejectedCall(System.IntPtr hTaskCallee, int dwTickCount, int dwRejectType)
         {
             // Thread call was refused, try again. 
             if (dwRejectType == SERVERCALL_RETRYLATER)
@@ -491,7 +491,7 @@ namespace PrimalEditor.GameDev
         }
 
 
-        int IOleMessageFilter.MessagePending(System.IntPtr hTaskCallee, int dwTickCount, int dwPendingType)
+        int IMessageFilter.MessagePending(System.IntPtr hTaskCallee, int dwTickCount, int dwPendingType)
         {
             //return flag PENDINGMSG_WAITDEFPROCESS. 
             return PENDINGMSG_WAITDEFPROCESS;
@@ -499,7 +499,7 @@ namespace PrimalEditor.GameDev
 
         // implement IOleMessageFilter interface. 
         [DllImport("Ole32.dll")]
-        private static extern int CoRegisterMessageFilter(IOleMessageFilter newFilter, out IOleMessageFilter oldFilter);
+        private static extern int CoRegisterMessageFilter(IMessageFilter newFilter, out IMessageFilter oldFilter);
 
     }
 }

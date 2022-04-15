@@ -292,25 +292,23 @@ namespace primal::utl {
 
 		[[nodiscard]]
 		constexpr T* begin() {
-			//assert(_data);
 			return std::addressof(_data[0]);
 		}
 
 		[[nodiscard]]
 		constexpr T* const begin() const {
-			//assert(_data);
 			return std::addressof(_data[0]);
 		}
 
 		[[nodiscard]]
 		constexpr T* end() {
-			//assert(_data);
+			assert(!(_data == nullptr && _size > 0));
 			return std::addressof(_data[_size]);
 		}
 
 		[[nodiscard]]
 		constexpr T* const end() const {
-			//assert(_data);
+			assert(!(_data == nullptr && _size > 0));
 			return std::addressof(_data[_size]);
 		}
 
