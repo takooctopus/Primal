@@ -11,6 +11,7 @@ namespace primal::graphics::d3d12 {
 	struct descriptor_handle {
 		D3D12_CPU_DESCRIPTOR_HANDLE		cpu{};	// cpu描述句柄
 		D3D12_GPU_DESCRIPTOR_HANDLE		gpu{};	// gpu描述句柄
+		u32								index{ u32_invalid_id };	// 【debug only】描述符现在序号
 
 
 		/// <summary>
@@ -30,7 +31,6 @@ namespace primal::graphics::d3d12 {
 	private:
 		friend class descriptor_heap;	// 友元类，方便 descriptor_heap 在调试时调用私有属性
 		descriptor_heap*		container{ nullptr };	// 【debug only】 这个描述符所属的descriptor_heap指针
-		u32						index{ u32_invalid_id };	// 【debug only】描述符现在序号
 
 #endif // _DEBUG
 
@@ -212,9 +212,13 @@ namespace primal::graphics::d3d12 {
 
 
 		void release();
+		[[nodiscard]]
 		constexpr u32 mip_count() const { return _mip_count; }
+		[[nodiscard]]
 		constexpr D3D12_CPU_DESCRIPTOR_HANDLE rtv(u32 mip_index) const { assert(mip_index < _mip_count); return _rtv[mip_index].cpu; }
+		[[nodiscard]]
 		constexpr descriptor_handle srv() const { return _texture.srv(); }
+		[[nodiscard]]
 		constexpr ID3D12Resource* const resource() const { return _texture.resource(); }
 
 	private:
@@ -266,8 +270,11 @@ namespace primal::graphics::d3d12 {
 		}
 
 		void release();
+		[[nodiscard]]
 		constexpr D3D12_CPU_DESCRIPTOR_HANDLE dsv() const { return _dsv.cpu; }
+		[[nodiscard]]
 		constexpr descriptor_handle srv() const { return _texture.srv(); }
+		[[nodiscard]]
 		constexpr ID3D12Resource* const resource() const { return _texture.resource(); }
 	private:
 		d3d12_texture				_texture{};	//同样的，包含一个纹理	

@@ -106,7 +106,7 @@ namespace primal::graphics::d3d12::d3dx {
 			u32 subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES) {
 			assert(resource);
 			assert(_offset < max_resource_barriers);
-			D3D12_RESOURCE_BARRIER& barrier{_barriers[_offset]};
+			D3D12_RESOURCE_BARRIER& barrier{ _barriers[_offset] };
 			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			barrier.Flags = flags;
 			barrier.Transition.pResource = resource;

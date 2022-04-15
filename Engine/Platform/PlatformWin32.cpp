@@ -1,9 +1,10 @@
+#ifdef _WIN64
+
 #include "Platform.h"
 #include "PlatformTypes.h"
 
 namespace primal::platform {
 
-#ifdef _WIN64
 	namespace {
 		struct window_info {
 			HWND			hwnd{ nullptr };
@@ -40,6 +41,8 @@ namespace primal::platform {
 			return get_from_id(id);
 		}
 
+		bool resized{ false };
+
 		/// <summary>
 		/// 这里去处理消息，比方说拖动啦什么的，就靠这个回调来实现了
 		/// </summary>
@@ -52,30 +55,31 @@ namespace primal::platform {
 
 			window_info* info{ nullptr };
 			switch (msg) {
+			case WM_NCCREATE:
+			{
+				DEBUG_OP(SetLastError(0));
+				const window_id id{ windows.add() };
+				windows[id].hwnd = hwnd;
+				// 将window_id保存到WindowLongPtr里面去作为用户数据（方便我们以后拿到hwnd时去数组找对应的window是哪一个）
+				SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)id);
+				assert(GetLastError() == 0);
+				break;
+			}
 			case WM_DESTROY:
 				get_from_handle(hwnd).is_closed = true;
 				break;
-			case WM_EXITSIZEMOVE:
-				info = &get_from_handle(hwnd);
-				break;
 			case WM_SIZE:
-				if (wparam == SIZE_MAXIMIZED) {
-					info = &get_from_handle(hwnd);
-				}
-				break;
-			case WM_SYSCOMMAND:
-				if (wparam == SC_RESTORE) {
-					info = &get_from_handle(hwnd);
-				}
+				resized = (wparam != SIZE_MINIMIZED); 
 				break;
 			default:
 				break;
 			}
 
-			if (info) {
-				assert(info->hwnd);
-				GetClientRect(info->hwnd, info->is_fullscreen ? &info->fullscreen_area : &info->client_area);
-
+			if (resized && GetAsyncKeyState(VK_LBUTTON) >= 0) {
+				window_info& info{ get_from_handle(hwnd) };
+				assert(info.hwnd);
+				GetClientRect(info.hwnd, info.is_fullscreen ? &info.fullscreen_area : &info.client_area);
+				resized = false;
 			}
 
 			LONG_PTR long_ptr{ GetWindowLongPtr(hwnd,0) };
@@ -202,7 +206,7 @@ namespace primal::platform {
 	}//匿名命名空间
 
 	[[nodiscard]]
-	window create_window(const window_init_info* const init_info  /* = nullptr */)
+	window create_window(const window_init_info* init_info  /* = nullptr */)
 	{
 		// 看用户传callback函数进来了嘛
 		window_proc callback{ init_info ? init_info->callback : nullptr };
@@ -263,16 +267,14 @@ namespace primal::platform {
 
 		if (info.hwnd) {
 			DEBUG_OP(SetLastError(0));
-			const window_id id{ windows.add(info) };
-			// 将window_id保存到WindowLongPtr里面去作为用户数据（方便我们以后拿到hwnd时去数组找对应的window是哪一个）
-			SetWindowLongPtr(info.hwnd, GWLP_USERDATA, (LONG_PTR)id);
-
 			if (callback) {
 				SetWindowLongPtr(info.hwnd, 0, (LONG_PTR)callback);
 			}
 			assert(GetLastError() == 0);
 			ShowWindow(info.hwnd, SW_SHOWNORMAL);
 			UpdateWindow(info.hwnd);
+			window_id id{ (id::id_type)GetWindowLongPtr(info.hwnd,GWLP_USERDATA) };
+			windows[id] = info;
 			return window{ id };
 		}
 
@@ -289,49 +291,5 @@ namespace primal::platform {
 #endif // _WIN64
 
 
-
-	void window::set_fullscreen(bool is_fullscreen) const {
-		assert(is_valid());
-		set_window_full_screen(_id, is_fullscreen);
-	}
-	[[nodiscard]]
-	bool window::is_fullscreen() const {
-		assert(is_valid());
-		return is_window_full_screen(_id);
-	}
-
-	void* window::handle() const {
-		assert(is_valid());
-		return get_window_handle(_id);
-	}
-	void window::set_caption(const wchar_t* caption) const {
-		assert(is_valid());
-		set_window_caption(_id, caption);
-	}
-	[[nodiscard]]
-	math::u32v4 window::size() const {
-		assert(is_valid());
-		return get_window_size(_id);
-	}
-	void window::resize(u32 width, u32 height) const {
-		assert(is_valid());
-		resize_window(_id, width, height);
-	}
-	u32 window::width() const {
-		assert(is_valid());
-		math::u32v4 s{ size() };
-		return s.z - s.x;
-	}
-
-	u32 window::height() const {
-		assert(is_valid());
-		math::u32v4 s{ size() };
-		return s.w - s.y;
-	}
-	bool window::is_closed() const {
-		assert(is_valid());
-		return is_window_closed(_id);
-	}
-
-
 }// namespace primal::platform
+#include "IncludeWindowCpp.h"

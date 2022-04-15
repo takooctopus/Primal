@@ -3,6 +3,7 @@
 #include "D3D12Surface.h"
 #include "D3D12Shaders.h"
 #include "D3D12GPass.h"
+#include "D3D12PostProcess.h"
 
 using namespace Microsoft::WRL;
 
@@ -308,6 +309,10 @@ namespace primal::graphics::d3d12::core {
 				OutputDebugStringA("Warning: D3D12 Debug is not available. Verify that graphic tools optional feature is installed in this device.");
 			}
 			debug_interface->EnableDebugLayer();
+#if 1
+#pragma message("WARNING: GPU_based validation is enabled.  This will considerably slow down the renderer!")
+			debug_interface->SetEnableGPUBasedValidation(1);
+#endif
 			dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
 		}
 #endif	//_DEBUG
@@ -351,6 +356,7 @@ namespace primal::graphics::d3d12::core {
 		// shutdown modules
 		if (!shaders::initialize()) return failed_init();
 		if (!gpass::initialize()) return failed_init();
+		if (!fx::initialize()) return failed_init();
 
 
 		NAME_D3D12_OBJECT(main_device, L"MAIN DEVICE");
@@ -375,6 +381,7 @@ namespace primal::graphics::d3d12::core {
 		}
 
 		// initialize modules
+		fx::shutdown();
 		gpass::shutdown();
 		shaders::shutdown();
 
@@ -499,9 +506,21 @@ namespace primal::graphics::d3d12::core {
 
 		//记录操作
 		//....
+		
+		ID3D12DescriptorHeap* const heaps[]{ srv_desc_heap.heap() };
+		cmd_list->SetDescriptorHeaps(1, &heaps[0]);
+
+
 		cmd_list->RSSetViewports(1, &surface.viewport());	// 设置视点
 		cmd_list->RSSetScissorRects(1, &surface.scissor_rect());	//设置视框
 		// depth prepass
+		/*barriers.add(
+			current_back_buffer,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY
+		);*/
+
 		gpass::add_transitions_for_depth_prepass(barriers);	// 为深度缓冲添加一个屏障到屏障列表
 		barriers.apply(cmd_list);	//同步到屏障
 		gpass::set_render_targets_for_depth_prepass(cmd_list);	// 为主场景纹理缓冲添加一个屏障
@@ -520,9 +539,17 @@ namespace primal::graphics::d3d12::core {
 			D3D12_RESOURCE_STATE_PRESENT,
 			D3D12_RESOURCE_STATE_RENDER_TARGET);
 		//post-process
-		//会写到当前的back buffer【后备缓冲】, 所以back buffer就是 render target
+		/*barriers.add(
+			current_back_buffer,
+			D3D12_RESOURCE_STATE_PRESENT,
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_BARRIER_FLAG_END_ONLY
+		);*/
 		gpass::add_transitions_for_post_process(barriers);
 		barriers.apply(cmd_list);
+		//会写到当前的back buffer【后备缓冲】, 所以back buffer就是 render target
+		fx::post_process(cmd_list, surface.rtv());
+
 
 		//after post process
 		d3dx::transition_resource(

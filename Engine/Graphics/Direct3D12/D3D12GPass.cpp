@@ -4,11 +4,21 @@
 
 namespace primal::graphics::d3d12::gpass {
 	namespace {
+
+		struct gpass_root_param_indices {
+			enum : u32 {
+				root_constants,
+
+				count
+			};
+		};
+
 		constexpr DXGI_FORMAT			main_buffer_format{ DXGI_FORMAT_R16G16B16A16_FLOAT };	//主缓冲区格式 HDR
 		constexpr DXGI_FORMAT			depth_buffer_format{ DXGI_FORMAT_D32_FLOAT };	//深度缓冲区格式32bit
 		constexpr math::u32v2			initial_dimensions{ 100,100 };		//初始化维度
 		d3d12_render_texture			gpass_main_buffer{};			//渲染纹理
 		d3d12_depth_buffer				gpass_depth_buffer{};			//深度缓冲
+		D3D12_RESOURCE_BARRIER_FLAGS	flags{};
 
 		math::u32v2						dimensions{ initial_dimensions };	// 两个缓冲区的维度
 		ID3D12RootSignature*			gpass_root_sig{ nullptr };
@@ -69,6 +79,8 @@ namespace primal::graphics::d3d12::gpass {
 			NAME_D3D12_OBJECT(gpass_main_buffer.resource(), L"Gpass Main Buffer");
 			NAME_D3D12_OBJECT(gpass_depth_buffer.resource(), L"Gpass Depth Buffer");
 
+			flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
 			return gpass_main_buffer.resource() && gpass_depth_buffer.resource();
 		}
 
@@ -76,9 +88,10 @@ namespace primal::graphics::d3d12::gpass {
 			assert(!gpass_root_sig && !gpass_pso);
 
 			// 创建Gpass root signature
-			d3dx::d3d12_root_parameter parameters[1]{};
-			parameters[0].as_constants(1, D3D12_SHADER_VISIBILITY_PIXEL, 1);
-			const d3dx::d3d12_root_signature_desc root_sig{ _countof(parameters) , &parameters[0] };
+			using idx = gpass_root_param_indices;
+			d3dx::d3d12_root_parameter parameters[idx::count]{};
+			parameters[0].as_constants(3, D3D12_SHADER_VISIBILITY_PIXEL, 1);
+			const d3dx::d3d12_root_signature_desc root_sig{ idx::count , &parameters[0] };
 			gpass_root_sig = root_sig.create();
 			assert(gpass_root_sig);
 			NAME_D3D12_OBJECT(gpass_root_sig, L"GPass Root Signature");
@@ -103,7 +116,7 @@ namespace primal::graphics::d3d12::gpass {
 			gpass_pso = d3dx::create_pipeline_state(&stream, sizeof(stream));
 			NAME_D3D12_OBJECT(gpass_pso, L"GPass Pipeline State Object");
 
-			return gpass_root_sig && gpass_pso;;
+			return gpass_root_sig && gpass_pso;
 		}
 
 	}//anonymous namespace
@@ -122,6 +135,16 @@ namespace primal::graphics::d3d12::gpass {
 		core::release(gpass_pso);	//释放 GPass Pipeline State Object
 		core::release(gpass_root_sig);	// 释放GPass Root Signature
 	}
+	d3d12_render_texture& main_buffer()
+	{
+		return gpass_main_buffer;
+	}
+
+	d3d12_depth_buffer& depth_buffer()
+	{
+		return gpass_depth_buffer;
+	}
+
 	void set_size(math::u32v2 size)
 	{
 		math::u32v2& d{ dimensions };
@@ -132,7 +155,7 @@ namespace primal::graphics::d3d12::gpass {
 	}
 	void depth_prepass(id3d12_graphics_command_list * cmd_list, const d3d12_frame_info & info)
 	{
-		
+
 	}
 	void render(id3d12_graphics_command_list * cmd_list, const d3d12_frame_info & info)
 	{
@@ -140,31 +163,55 @@ namespace primal::graphics::d3d12::gpass {
 		cmd_list->SetPipelineState(gpass_pso);
 
 		static u32 frame{ 0 };
-		++frame;
-		cmd_list->SetGraphicsRoot32BitConstant(0, frame, 0);
+		struct
+		{
+			f32 width;
+			f32 height;
+			u32 frame;
+		} constants{ (f32)info.surface_width, (f32)info.surface_height, ++frame };
+
+		using idx = gpass_root_param_indices;
+		cmd_list->SetGraphicsRoot32BitConstants(idx::root_constants, 3, &constants, 0);
 		cmd_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		cmd_list->DrawInstanced(3, 1, 0, 0);
 	}
 
 
 	void add_transitions_for_depth_prepass(d3dx::d3d12_resource_barrier& barriers) {
+		//barriers.add(gpass_main_buffer.resource(),
+		//	D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		//	D3D12_RESOURCE_STATE_RENDER_TARGET,
+		//	D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY
+		//);
 		barriers.add(gpass_depth_buffer.resource(),
 			D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_DEPTH_WRITE);
+			D3D12_RESOURCE_STATE_DEPTH_WRITE
+			//flags
+		);
+		flags = D3D12_RESOURCE_BARRIER_FLAG_END_ONLY;
 	}
 	void add_transitions_for_gpass(d3dx::d3d12_resource_barrier& barriers) {
 		barriers.add(gpass_main_buffer.resource(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
+			D3D12_RESOURCE_STATE_RENDER_TARGET
+			//D3D12_RESOURCE_BARRIER_FLAG_END_ONLY
+		);
 		barriers.add(gpass_depth_buffer.resource(),
 			D3D12_RESOURCE_STATE_DEPTH_WRITE,
-			D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+			D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+		);
 
 	}
 	void add_transitions_for_post_process(d3dx::d3d12_resource_barrier& barriers) {
 		barriers.add(gpass_main_buffer.resource(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+		);
+		//barriers.add(gpass_depth_buffer.resource(),
+		//	D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+		//	D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		//	D3D12_RESOURCE_BARRIER_FLAG_BEGIN_ONLY
+		//);
 	}
 
 

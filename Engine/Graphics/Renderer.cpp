@@ -3,7 +3,7 @@
 #include "Direct3D12\D3D12Interface.h"
 
 namespace primal::graphics {
-	
+
 	namespace {
 
 		constexpr const char* engine_shader_paths[]{
@@ -42,7 +42,8 @@ namespace primal::graphics {
 	}
 
 	void shutdown() {
-		gfx.shutdown();
+		if (gfx.platform != (graphics_platform)-1)
+			gfx.shutdown();
 	}
 
 	const char* get_engine_shaders_path() {

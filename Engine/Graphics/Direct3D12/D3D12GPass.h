@@ -8,6 +8,13 @@ namespace primal::graphics::d3d12::gpass {
 	bool initialize();
 	void shutdown();
 
+
+	[[nodiscard]]
+	d3d12_render_texture& main_buffer();
+
+	[[nodiscard]]
+	d3d12_depth_buffer& depth_buffer();
+
 	/// <summary>
 	/// 更改大小【每一帧都要调用这个方法】
 	/// </summary>
